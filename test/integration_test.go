@@ -19,7 +19,7 @@ func TestBigWigHandler(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	err = WriteTOJSON("./response/bigwigResponse.json", &response)
+	err = WriteTOJSON("./response/bigWigResponse.json", &response)
 	if err != nil {
 		t.Error(err.Error())
 	}

@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"gb-api/track/bigbed"
 	"gb-api/track/bigwig"
 	"io"
 	"net/http"
@@ -52,4 +53,46 @@ func TestBigWigHandler(t *testing.T) {
 	if bigWigData[0] != comp {
 		t.Errorf("Expected first element to be %+v, got %+v", comp, bigWigData[0])
 	}
+}
+
+func TestBigBed(t *testing.T) {
+	body, err := os.ReadFile("../test/request/bigBedRequest.json")
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/bigbed", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+
+	BigBedHandler(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	var response TrackResponse
+	err = json.Unmarshal(data, &response)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	dataBytes, err := json.Marshal(response.Data)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	var bigBedData []bigbed.BigBedData
+	err = json.Unmarshal(dataBytes, &bigBedData)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if len(bigBedData) != 5 {
+		t.Fail()
+	}
+
 }
