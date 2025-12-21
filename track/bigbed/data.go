@@ -8,8 +8,6 @@ import (
 	"gb-api/track/common"
 	"gb-api/utils"
 	"io"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -68,31 +66,13 @@ func (b *BigBed) DecodeBedData(data []byte, filterStartChromIndex int32, filterS
 			break
 		}
 
-		// Parse the rest string to extract name, score, and remaining fields
-		fields := strings.Split(rest, "\t")
+		// Create entry
 		entry := BigBedData{
 			Chr:   chrom,
 			Start: startBase,
 			End:   endBase,
+			Rest:  rest,
 		}
-
-		// Extract name (field 4 in BED format)
-		if len(fields) > 0 && fields[0] != "" {
-			entry.Name = fields[0]
-		}
-
-		// Extract score (field 5 in BED format)
-		if len(fields) > 1 && fields[1] != "" {
-			if score, err := strconv.ParseInt(fields[1], 10, 32); err == nil {
-				entry.Score = int32(score)
-			}
-		}
-
-		// Remaining fields go into Rest
-		if len(fields) > 2 {
-			entry.Rest = strings.Join(fields[2:], "\t")
-		}
-
 		decodedData = append(decodedData, entry)
 	}
 
