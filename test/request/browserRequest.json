@@ -1,0 +1,19 @@
+{
+  "chrom": "chr19",
+  "start": 44905754,
+  "end": 44907754,
+  "tracks": [
+    {
+      "id": "bigwig",
+      "type": "bigwig",
+      "config": {
+        "url": "https://downloads.wenglab.org/DNAse_All_ENCODE_MAR20_2024_merged.bw"
+      }
+    },
+    {
+      "id": "transcript",
+      "type": "transcript",
+      "config": {}
+    }
+  ]
+}
