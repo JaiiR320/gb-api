@@ -5,29 +5,39 @@ import (
 	"gb-api/track/bigdata"
 )
 
+const (
+	BIGBED_MAGIC_LTH = 0x8789F2EB // BigBed Magic Low to High
+	BIGBED_MAGIC_HTL = 0xEBF28987 // BigBed Magic High to Low       = 0x2468ACE0
+)
+
+type BigBed struct {
+	*bigdata.BigData
+}
+
+// BigBedData represents a single data point in a BigBed file
+type BigBedData struct {
+	Chr   string `json:"chr"`
+	Start int32  `json:"start"`
+	End   int32  `json:"end"`
+	Rest  string `json:"rest,omitempty"`
+}
+
 func ReadBigBed(url string, chr string, start int, end int) ([]BigBedData, error) {
 	bb := BigBed{
 		BigData: &bigdata.BigData{URL: url},
 	}
 
-	// Load header
 	err := bb.LoadHeader(BIGBED_MAGIC_LTH, BIGBED_MAGIC_HTL)
 	if err != nil {
 		return nil, errors.New("Failed to load BigBed header: " + err.Error())
 	}
 
-	// Load metadata
-	metaData, err := bigdata.RequestBytes(bb.URL, 64, int(bb.Header.FullDataOffset)-64+5)
-	if err != nil {
-		return nil, errors.New("Failed to request metadata: " + err.Error())
-	}
-
-	err = bb.LoadMetaData(metaData)
+	err = bb.LoadMetaData()
 	if err != nil {
 		return nil, errors.New("Failed to load metadata: " + err.Error())
 	}
 
-	data, err := bb.ReadBigBedData(chr, int32(start), int32(end))
+	data, err := bigdata.ReadData(bb.BigData, chr, int32(start), int32(end), decodeBedData)
 	if err != nil {
 		return nil, errors.New("Failed to read BigWig data: " + err.Error())
 	}

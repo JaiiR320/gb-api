@@ -4,6 +4,10 @@ import (
 	"encoding/binary"
 )
 
+const (
+	BBFILE_HEADER_SIZE = 64 // Common header size
+)
+
 type BigData struct {
 	URL          string            `json:"url"`
 	Header       Header            `json:"header"`

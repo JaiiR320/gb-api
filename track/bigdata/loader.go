@@ -50,7 +50,12 @@ func (b *BigData) LoadHeader(lth uint32, htl uint32) error {
 }
 
 // LoadMetaData loads BigBed metadata including zoom levels, autoSql, total summary, and chromosome tree
-func (b *BigData) LoadMetaData(data []byte) error {
+func (b *BigData) LoadMetaData() error {
+	data, err := RequestBytes(b.URL, 64, int(b.Header.FullDataOffset)-64+5)
+	if err != nil {
+		return err
+	}
+
 	p := utils.NewParser(bytes.NewReader(data), b.ByteOrder)
 
 	b.ZoomLevels = make([]ZoomLevelHeader, b.Header.NZoomLevels)
@@ -104,7 +109,7 @@ func (b *BigData) LoadMetaData(data []byte) error {
 	b.TotalSummary = totalSummary
 
 	var chromTree ChromTree
-	_, err := p.SetPosition(FileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
+	_, err = p.SetPosition(FileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
 	if err != nil {
 		return err
 	}
