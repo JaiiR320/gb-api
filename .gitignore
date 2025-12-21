@@ -1,0 +1,4 @@
+main
+
+track/transcript/data/*
+!track/transcript/data/v40/
