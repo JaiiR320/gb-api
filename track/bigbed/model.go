@@ -79,7 +79,7 @@ type BigBedData struct {
 	Chr   string `json:"chr"`
 	Start int32  `json:"start"`
 	End   int32  `json:"end"`
-	Name  string `json:"name,omitempty"`
-	Score int32  `json:"score,omitempty"`
+	Name  string `json:"name"`
+	Score int32  `json:"score"`
 	Rest  string `json:"rest,omitempty"`
 }

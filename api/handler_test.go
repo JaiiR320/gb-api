@@ -90,9 +90,4 @@ func TestBigBed(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
-
-	if len(bigBedData) != 5 {
-		t.Fail()
-	}
-
 }

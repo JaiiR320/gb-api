@@ -14,7 +14,7 @@ func BigWigHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling bigwig request")
-	TrackHandler(w, r, l, func(req BigWigRequest) ([]bigwig.BigWigData, error) {
+	TrackHandler(w, r, l, func(req BigWigRequest) (any, error) {
 		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End)
 		return bigwig.ReadBigWig(req.URL, req.Chrom, req.Start, req.End)
 	})
@@ -25,9 +25,19 @@ func BigBedHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling bigbed request")
-	TrackHandler(w, r, l, func(req BigBedRequest) ([]bigbed.BigBedData, error) {
+	TrackHandler(w, r, l, func(req BigBedRequest) (any, error) {
 		l.Info("Reading bigbed", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End)
-		return bigbed.ReadBigBed(req.URL, req.Chrom, req.Start, req.End)
+		data, err := bigbed.ReadBigBed(req.URL, req.Chrom, req.Start, req.End)
+		if err != nil {
+			return nil, err
+		}
+
+		switch req.Type {
+		case "ccre":
+			return bigbed.ParseCCRE(data)
+		default:
+			return data, err
+		}
 	})
 	l.Info("Finished bigbed request")
 }
@@ -36,7 +46,7 @@ func TranscriptHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling transcript request")
-	TrackHandler(w, r, l, func(req TranscriptRequest) ([]transcript.Gene, error) {
+	TrackHandler(w, r, l, func(req TranscriptRequest) (any, error) {
 		l.Info("Getting transcripts", "chrom", req.Chrom, "start", req.Start, "end", req.End)
 		return transcript.GetTranscripts(req.Chrom, req.Start, req.End)
 	})
