@@ -3,6 +3,7 @@ package bigbed
 import (
 	"encoding/binary"
 	"encoding/json"
+	"gb-api/track/common"
 )
 
 type BigBed struct {
@@ -12,7 +13,7 @@ type BigBed struct {
 	ByteOrder    binary.ByteOrder  `json:"-"`
 	AutoSql      string            `json:"autoSql,omitempty"`
 	TotalSummary BBTotalSummary    `json:"totalSummary"`
-	ChromTree    ChromTree         `json:"chromTree"`
+	ChromTree    common.ChromTree  `json:"chromTree"`
 }
 
 type Header struct {
@@ -43,17 +44,6 @@ type BBTotalSummary struct {
 	MaxVal       float64 `json:"maxVal"`
 	SumData      float64 `json:"sumData"`
 	SumSquares   float64 `json:"sumSquares"`
-}
-
-type ChromTree struct {
-	BlockSize int32            `json:"blockSize"`
-	KeySize   int32            `json:"keySize"`
-	ValSize   int32            `json:"valSize"`
-	ItemCount uint64           `json:"itemCount"`
-	Reserved  uint64           `json:"reserved"`
-	ChromToID map[string]int32 `json:"chromToId"`
-	ChromSize map[string]int32 `json:"chromSize"`
-	IDToChrom map[int32]string `json:"idToChrom"`
 }
 
 // MarshalJSON implements custom JSON marshaling for BigBed

@@ -223,7 +223,7 @@ func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom str
 
 	// Read R+ tree header
 	treeOffset := b.Header.FullIndexOffset
-	headerData, err := common.RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
+	headerData, err := common.RequestBytes(b.URL, int(treeOffset), common.RPTREE_HEADER_SIZE)
 	if err != nil {
 		return nil, err
 	}
@@ -234,12 +234,12 @@ func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom str
 		return nil, err
 	}
 
-	if magic != IDX_MAGIC {
+	if magic != common.IDX_MAGIC {
 		return nil, fmt.Errorf("R+ tree not found at offset %d", treeOffset)
 	}
 
 	// Load leaf nodes from R+ tree
-	rootNodeOffset := treeOffset + RPTREE_HEADER_SIZE
+	rootNodeOffset := treeOffset + common.RPTREE_HEADER_SIZE
 	leafNodes, err := loadLeafNodesForRPNode(b, rootNodeOffset, startChromIndex, startBase, endChromIndex, endBase)
 	if err != nil {
 		return nil, err

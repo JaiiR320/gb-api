@@ -1,4 +1,4 @@
-package bigwig
+package common
 
 const (
 	RPTREE_HEADER_SIZE = 48         // R+ tree header size

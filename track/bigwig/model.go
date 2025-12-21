@@ -3,6 +3,7 @@ package bigwig
 import (
 	"encoding/binary"
 	"encoding/json"
+	"gb-api/track/common"
 )
 
 type BigWig struct {
@@ -12,7 +13,7 @@ type BigWig struct {
 	ByteOrder    binary.ByteOrder  `json:"-"`
 	AutoSql      string            `json:"autoSql,omitempty"`
 	TotalSummary BWTotalSummary    `json:"totalSummary"`
-	ChromTree    ChromTree         `json:"chromTree"`
+	ChromTree    common.ChromTree  `json:"chromTree"`
 }
 
 type Header struct {
@@ -43,17 +44,6 @@ type BWTotalSummary struct {
 	MaxVal       float64 `json:"maxVal"`
 	SumData      float64 `json:"sumData"`
 	SumSquares   float64 `json:"sumSquares"`
-}
-
-type ChromTree struct {
-	BlockSize int32            `json:"blockSize"`
-	KeySize   int32            `json:"keySize"`
-	ValSize   int32            `json:"valSize"`
-	ItemCount uint64           `json:"itemCount"`
-	Reserved  uint64           `json:"reserved"`
-	ChromToID map[string]int32 `json:"chromToId"`
-	ChromSize map[string]int32 `json:"chromSize"`
-	IDToChrom map[int32]string `json:"idToChrom"`
 }
 
 // MarshalJSON implements custom JSON marshaling for BigWig
@@ -88,37 +78,4 @@ type BigWigData struct {
 	Start int32   `json:"start"`
 	End   int32   `json:"end"`
 	Value float32 `json:"value"`
-}
-
-// RPTreeHeader represents the R+ tree header
-type RPTreeHeader struct {
-	Magic         uint32
-	BlockSize     uint32
-	ItemCount     uint64
-	StartChromIx  uint32
-	StartBase     uint32
-	EndChromIx    uint32
-	EndBase       uint32
-	EndFileOffset uint64
-	ItemsPerSlot  uint32
-	Reserved      uint32
-}
-
-// RPLeafNode represents a leaf node in the R+ tree
-type RPLeafNode struct {
-	StartChromIx uint32
-	StartBase    uint32
-	EndChromIx   uint32
-	EndBase      uint32
-	DataOffset   uint64
-	DataSize     uint64
-}
-
-// RPChildNode represents a child node in the R+ tree
-type RPChildNode struct {
-	StartChromIx uint32
-	StartBase    uint32
-	EndChromIx   uint32
-	EndBase      uint32
-	ChildOffset  uint64
 }

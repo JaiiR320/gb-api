@@ -1,9 +1,11 @@
-package bigwig
+package common
 
-import "gb-api/utils"
+import (
+	"gb-api/utils"
+)
 
 // buildChromTree recursively builds the chromosome B+ tree
-func buildChromTree(chromTree *ChromTree, binaryParser *utils.Parser, offset *int64) error {
+func BuildChromTree(chromTree *ChromTree, binaryParser *utils.Parser, offset *int64) error {
 	if offset != nil {
 		_, err := binaryParser.SetPosition(*offset, 0)
 		if err != nil {
@@ -62,7 +64,7 @@ func buildChromTree(chromTree *ChromTree, binaryParser *utils.Parser, offset *in
 				return err
 			}
 
-			bufferOffset := fileOffsetToBufferOffset(childOffset)
+			bufferOffset := FileOffsetToBufferOffset(childOffset)
 
 			// Save current position
 			currPos, err := binaryParser.SetPosition(0, 1) // Get current position
@@ -71,7 +73,7 @@ func buildChromTree(chromTree *ChromTree, binaryParser *utils.Parser, offset *in
 			}
 
 			// Recursively build child node
-			err = buildChromTree(chromTree, binaryParser, &bufferOffset)
+			err = BuildChromTree(chromTree, binaryParser, &bufferOffset)
 			if err != nil {
 				return err
 			}
@@ -85,4 +87,10 @@ func buildChromTree(chromTree *ChromTree, binaryParser *utils.Parser, offset *in
 	}
 
 	return nil
+}
+
+// FileOffsetToBufferOffset converts a file offset to a buffer offset
+// by subtracting the header size
+func FileOffsetToBufferOffset(offset uint64) int64 {
+	return int64(offset - uint64(BBFILE_HEADER_SIZE))
 }

@@ -8,19 +8,6 @@ import (
 	"gb-api/utils"
 )
 
-const (
-	BIGBED_MAGIC_LTH   = 0x8789F2EB // BigBed Magic Low to High
-	BIGBED_MAGIC_HTL   = 0xEBF28987 // BigBed Magic High to Low
-	BBFILE_HEADER_SIZE = 64         // Common header size
-	CHROM_TREE_MAGIC   = 0x78CA8C91 // Chrom Tree Magic Number
-)
-
-// fileOffsetToBufferOffset converts a file offset to a buffer offset
-// by subtracting the header size
-func fileOffsetToBufferOffset(offset uint64) int64 {
-	return int64(offset - uint64(BBFILE_HEADER_SIZE))
-}
-
 // LoadHeader loads and parses the BigBed file header
 func (b *BigBed) LoadHeader() error {
 	data, err := common.RequestBytes(b.URL, 0, BBFILE_HEADER_SIZE)
@@ -85,7 +72,7 @@ func (b *BigBed) LoadMetaData(data []byte) error {
 
 	var autosql string
 	if b.Header.AutoSqlOffset != 0 {
-		_, err := p.SetPosition(fileOffsetToBufferOffset(b.Header.AutoSqlOffset), 0)
+		_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.AutoSqlOffset), 0)
 		if err != nil {
 			return err
 		}
@@ -99,7 +86,7 @@ func (b *BigBed) LoadMetaData(data []byte) error {
 
 	var totalSummary BBTotalSummary
 	if b.Header.TotalSummaryOffset != 0 {
-		_, err := p.SetPosition(fileOffsetToBufferOffset(b.Header.TotalSummaryOffset), 0)
+		_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.TotalSummaryOffset), 0)
 		if err != nil {
 			return err
 		}
@@ -116,8 +103,8 @@ func (b *BigBed) LoadMetaData(data []byte) error {
 	}
 	b.TotalSummary = totalSummary
 
-	var chromTree ChromTree
-	_, err := p.SetPosition(fileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
+	var chromTree common.ChromTree
+	_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
 	if err != nil {
 		return err
 	}
@@ -153,7 +140,7 @@ func (b *BigBed) LoadMetaData(data []byte) error {
 }
 
 // buildChromTree recursively builds the chromosome tree
-func buildChromTree(tree *ChromTree, p *utils.Parser, parent *chromTreeNode) error {
+func buildChromTree(tree *common.ChromTree, p *utils.Parser, parent *chromTreeNode) error {
 	node, err := readChromTreeNode(p, tree)
 	if err != nil {
 		return err
@@ -192,7 +179,7 @@ type chromKey struct {
 	chromSize int32
 }
 
-func readChromTreeNode(p *utils.Parser, tree *ChromTree) (*chromTreeNode, error) {
+func readChromTreeNode(p *utils.Parser, tree *common.ChromTree) (*chromTreeNode, error) {
 	node := &chromTreeNode{}
 
 	isLeaf, err := p.GetUInt8()

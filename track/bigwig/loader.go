@@ -8,15 +8,15 @@ import (
 	"gb-api/utils"
 )
 
-// fileOffsetToBufferOffset converts a file offset to a buffer offset
-// by subtracting the header size
-func fileOffsetToBufferOffset(offset uint64) int64 {
-	return int64(offset - uint64(BBFILE_HEADER_SIZE))
+// loadLeafNodesForRPNode is the internal version used by BigWig
+func loadLeafNodesForRPNode(b *BigWig, nodeOffset uint64, startChromIx int32, startBase int32,
+	endChromIx int32, endBase int32) ([]common.RPLeafNode, error) {
+	return common.LoadLeafNodesForRPNode(b.URL, b.ByteOrder, nodeOffset, startChromIx, startBase, endChromIx, endBase)
 }
 
 // LoadHeader loads and parses the BigWig file header
 func (b *BigWig) LoadHeader() error {
-	data, err := common.RequestBytes(b.URL, 0, BBFILE_HEADER_SIZE)
+	data, err := common.RequestBytes(b.URL, 0, common.BBFILE_HEADER_SIZE)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 
 	var autosql string
 	if b.Header.AutoSqlOffset != 0 {
-		_, err := p.SetPosition(fileOffsetToBufferOffset(b.Header.AutoSqlOffset), 0)
+		_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.AutoSqlOffset), 0)
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 
 	var totalSummary BWTotalSummary
 	if b.Header.TotalSummaryOffset != 0 {
-		_, err := p.SetPosition(fileOffsetToBufferOffset(b.Header.TotalSummaryOffset), 0)
+		_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.TotalSummaryOffset), 0)
 		if err != nil {
 			return err
 		}
@@ -109,8 +109,8 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 	}
 	b.TotalSummary = totalSummary
 
-	var chromTree ChromTree
-	_, err := p.SetPosition(fileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
+	var chromTree common.ChromTree
+	_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if magic != CHROM_TREE_MAGIC {
+	if magic != common.CHROM_TREE_MAGIC {
 		return fmt.Errorf("chromosome B+ tree not found at offset %d", b.Header.ChromTreeOffset)
 	}
 
@@ -136,7 +136,7 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 	chromTree.ChromSize = make(map[string]int32)
 	chromTree.IDToChrom = make(map[int32]string)
 
-	err = buildChromTree(&chromTree, p, nil)
+	err = common.BuildChromTree(&chromTree, p, nil)
 	if err != nil {
 		return err
 	}

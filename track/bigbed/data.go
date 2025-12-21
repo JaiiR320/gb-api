@@ -4,15 +4,9 @@ import (
 	"bytes"
 	"compress/zlib"
 	"fmt"
-	"gb-api/track/bigwig"
 	"gb-api/track/common"
 	"gb-api/utils"
 	"io"
-)
-
-const (
-	RPTREE_HEADER_SIZE = 48
-	IDX_MAGIC          = 0x2468ACE0
 )
 
 // ParseBedFunction is a function that parses the rest of a BED record
@@ -116,7 +110,7 @@ func (b *BigBed) ReadBigBedData(chrom string, start int32, end int32) ([]BigBedD
 
 	// Read R+ tree header
 	treeOffset := b.Header.FullIndexOffset
-	headerData, err := common.RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
+	headerData, err := common.RequestBytes(b.URL, int(treeOffset), common.RPTREE_HEADER_SIZE)
 	if err != nil {
 		return nil, err
 	}
@@ -132,8 +126,8 @@ func (b *BigBed) ReadBigBedData(chrom string, start int32, end int32) ([]BigBedD
 	}
 
 	// Load leaf nodes from R+ tree
-	rootNodeOffset := treeOffset + RPTREE_HEADER_SIZE
-	leafNodes, err := bigwig.LoadLeafNodesForRPNode(b.URL, b.ByteOrder, rootNodeOffset, startChromIndex, start, endChromIndex, end)
+	rootNodeOffset := treeOffset + common.RPTREE_HEADER_SIZE
+	leafNodes, err := common.LoadLeafNodesForRPNode(b.URL, b.ByteOrder, rootNodeOffset, startChromIndex, start, endChromIndex, end)
 	if err != nil {
 		return nil, err
 	}
