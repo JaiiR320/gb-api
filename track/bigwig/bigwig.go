@@ -2,6 +2,7 @@ package bigwig
 
 import (
 	"errors"
+	"gb-api/track/common"
 )
 
 func ReadBigWig(url string, chrom string, start int, end int) ([]BigWigData, error) {
@@ -15,7 +16,7 @@ func ReadBigWig(url string, chrom string, start int, end int) ([]BigWigData, err
 	}
 
 	// Load metadata
-	metaData, err := RequestBytes(bw.URL, 64, int(bw.Header.FullDataOffset)-64+5)
+	metaData, err := common.RequestBytes(bw.URL, 64, int(bw.Header.FullDataOffset)-64+5)
 	if err != nil {
 		return nil, errors.New("Failed to request metadata: " + err.Error())
 	}

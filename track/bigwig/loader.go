@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"gb-api/track/common"
 	"gb-api/utils"
 )
 
@@ -15,7 +16,7 @@ func fileOffsetToBufferOffset(offset uint64) int64 {
 
 // LoadHeader loads and parses the BigWig file header
 func (b *BigWig) LoadHeader() error {
-	data, err := RequestBytes(b.URL, 0, BBFILE_HEADER_SIZE)
+	data, err := common.RequestBytes(b.URL, 0, BBFILE_HEADER_SIZE)
 	if err != nil {
 		return err
 	}

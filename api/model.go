@@ -6,12 +6,19 @@ import (
 
 // Track requests
 type BigWigRequest struct {
-	URL              string `json:"url"`
-	Chrom            string `json:"chrom"`
-	Start            int    `json:"start"`
-	End              int    `json:"end"`
-	ZoomLevel        int    `json:"zoomLevel"`
-	PreRenderedWidth int    `json:"preRenderedWidth"`
+	URL   string `json:"url"`
+	Chrom string `json:"chrom"`
+	Start int    `json:"start"`
+	End   int    `json:"end"`
+	// ZoomLevel        int    `json:"zoomLevel"`
+	// PreRenderedWidth int    `json:"preRenderedWidth"`
+}
+
+type BigBedRequest struct {
+	URL   string `json:"url"`
+	Chrom string `json:"chrom"`
+	Start int    `json:"start"`
+	End   int    `json:"end"`
 }
 
 type TranscriptRequest struct {

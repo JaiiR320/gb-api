@@ -5,6 +5,7 @@ import (
 	"compress/zlib"
 	"fmt"
 	"gb-api/track/bigwig"
+	"gb-api/track/common"
 	"gb-api/utils"
 	"io"
 )
@@ -99,8 +100,10 @@ func decompressData(data []byte, needsDecompression bool) ([]byte, error) {
 }
 
 // ReadBigBedData reads BigBed data for a genomic region
-func (b *BigBed) ReadBigBedData(startChrom string, startBase int32, endChrom string, endBase int32) ([]BigBedData, error) {
+func (b *BigBed) ReadBigBedData(chrom string, start int32, end int32) ([]BigBedData, error) {
 	// Get chromosome indices
+	startChrom := chrom
+	endChrom := chrom
 	startChromIndex, ok := b.ChromTree.ChromToID[startChrom]
 	if !ok {
 		return nil, fmt.Errorf("chromosome %s not found", startChrom)
@@ -113,7 +116,7 @@ func (b *BigBed) ReadBigBedData(startChrom string, startBase int32, endChrom str
 
 	// Read R+ tree header
 	treeOffset := b.Header.FullIndexOffset
-	headerData, err := bigwig.RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
+	headerData, err := common.RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +133,7 @@ func (b *BigBed) ReadBigBedData(startChrom string, startBase int32, endChrom str
 
 	// Load leaf nodes from R+ tree
 	rootNodeOffset := treeOffset + RPTREE_HEADER_SIZE
-	leafNodes, err := bigwig.LoadLeafNodesForRPNode(b.URL, b.ByteOrder, rootNodeOffset, startChromIndex, startBase, endChromIndex, endBase)
+	leafNodes, err := bigwig.LoadLeafNodesForRPNode(b.URL, b.ByteOrder, rootNodeOffset, startChromIndex, start, endChromIndex, end)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +141,7 @@ func (b *BigBed) ReadBigBedData(startChrom string, startBase int32, endChrom str
 	// Iterate through leaf nodes and decode data
 	allData := []BigBedData{}
 	for _, leafNode := range leafNodes {
-		leafData, err := bigwig.RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))
+		leafData, err := common.RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +153,7 @@ func (b *BigBed) ReadBigBedData(startChrom string, startBase int32, endChrom str
 		}
 
 		// Decode the data
-		decodedData, err := b.DecodeBedData(leafData, startChromIndex, startBase, endChromIndex, endBase)
+		decodedData, err := b.DecodeBedData(leafData, startChromIndex, start, endChromIndex, end)
 		if err != nil {
 			return nil, err
 		}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"fmt"
+	"gb-api/track/common"
 	"gb-api/utils"
 	"io"
 )
@@ -222,7 +223,7 @@ func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom str
 
 	// Read R+ tree header
 	treeOffset := b.Header.FullIndexOffset
-	headerData, err := RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
+	headerData, err := common.RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +248,7 @@ func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom str
 	// Iterate through leaf nodes and decode data
 	allData := []BigWigData{}
 	for _, leafNode := range leafNodes {
-		leafData, err := RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))
+		leafData, err := common.RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))
 		if err != nil {
 			return nil, err
 		}

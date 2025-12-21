@@ -3,6 +3,7 @@ package bigwig
 import (
 	"bytes"
 	"encoding/binary"
+	"gb-api/track/common"
 	"gb-api/utils"
 )
 
@@ -10,7 +11,7 @@ import (
 func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset uint64, startChromIx int32, startBase int32,
 	endChromIx int32, endBase int32) ([]RPLeafNode, error) {
 
-	data, err := RequestBytes(url, int(nodeOffset), 4)
+	data, err := common.RequestBytes(url, int(nodeOffset), 4)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +38,7 @@ func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset u
 	if isLeaf == RPTREE_NODE_LEAF {
 		// This is a leaf node - read leaf items
 		itemSize := 32 // Each leaf item is 32 bytes
-		data, err := RequestBytes(url, int(nodeOffset)+4, int(count)*itemSize)
+		data, err := common.RequestBytes(url, int(nodeOffset)+4, int(count)*itemSize)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +68,7 @@ func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset u
 	} else {
 		// This is a child node - recursively process children
 		itemSize := 24 // Each child item is 24 bytes
-		data, err := RequestBytes(url, int(nodeOffset)+4, int(count)*itemSize)
+		data, err := common.RequestBytes(url, int(nodeOffset)+4, int(count)*itemSize)
 		if err != nil {
 			return nil, err
 		}

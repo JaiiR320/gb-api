@@ -25,22 +25,41 @@ func TestBigWigHandler(t *testing.T) {
 	}
 }
 
+func TestBigBedHandler(t *testing.T) {
+	var request api.BigBedRequest
+	err := ReadFromJSON("./request/bigBedRequest.json", &request)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var response api.TrackResponse
+	err = POST("http://localhost:8080/bigbed", request, &response)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	err = WriteTOJSON("./response/bigBedResponse.json", &response)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}
+
 func TestTranscriptHandler(t *testing.T) {
 	var request api.TranscriptRequest
 	err := ReadFromJSON("./request/transcriptRequest.json", &request)
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 
 	var response api.TrackResponse
 	err = POST("http://localhost:8080/transcript", request, &response)
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 
 	err = WriteTOJSON("./response/transcriptResponse.json", response)
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 }
 
@@ -48,17 +67,17 @@ func TestBrowserHandler(t *testing.T) {
 	var request api.BrowserRequest
 	err := ReadFromJSON("./request/browserRequest.json", &request)
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 
 	var response api.BrowserResponse
 	err = POST("http://localhost:8080/browser", request, &response)
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 
 	err = WriteTOJSON("./response/browserResponse.json", response)
 	if err != nil {
-		t.Error(err.Error())
+		t.Error(err)
 	}
 }
