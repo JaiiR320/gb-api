@@ -1,4 +1,4 @@
-package common
+package bigdata
 
 import (
 	"gb-api/utils"

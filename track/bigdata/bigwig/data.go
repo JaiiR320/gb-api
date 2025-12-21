@@ -2,11 +2,9 @@ package bigwig
 
 import (
 	"bytes"
-	"compress/zlib"
 	"fmt"
-	"gb-api/track/common"
+	"gb-api/track/bigdata"
 	"gb-api/utils"
-	"io"
 )
 
 // ParseBedFunction is a function that parses the rest of a BED record
@@ -188,26 +186,6 @@ func (b *BigWig) DecodeWigData(data []byte, filterStartChromIndex int32, filterS
 	return decodedData, nil
 }
 
-// decompressData decompresses zlib-compressed data if needed
-func decompressData(data []byte, needsDecompression bool) ([]byte, error) {
-	if !needsDecompression {
-		return data, nil
-	}
-
-	reader, err := zlib.NewReader(bytes.NewReader(data))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create zlib reader: %w", err)
-	}
-	defer reader.Close()
-
-	decompressed, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decompress data: %w", err)
-	}
-
-	return decompressed, nil
-}
-
 // ReadBigWigData reads BigWig data for a genomic region
 func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom string, endBase int32) ([]BigWigData, error) {
 	// Get chromosome indices
@@ -223,7 +201,7 @@ func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom str
 
 	// Read R+ tree header
 	treeOffset := b.Header.FullIndexOffset
-	headerData, err := common.RequestBytes(b.URL, int(treeOffset), common.RPTREE_HEADER_SIZE)
+	headerData, err := bigdata.RequestBytes(b.URL, int(treeOffset), bigdata.RPTREE_HEADER_SIZE)
 	if err != nil {
 		return nil, err
 	}
@@ -234,13 +212,13 @@ func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom str
 		return nil, err
 	}
 
-	if magic != common.IDX_MAGIC {
+	if magic != bigdata.IDX_MAGIC {
 		return nil, fmt.Errorf("R+ tree not found at offset %d", treeOffset)
 	}
 
 	// Load leaf nodes from R+ tree
-	rootNodeOffset := treeOffset + common.RPTREE_HEADER_SIZE
-	leafNodes, err := loadLeafNodesForRPNode(b, rootNodeOffset, startChromIndex, startBase, endChromIndex, endBase)
+	rootNodeOffset := treeOffset + bigdata.RPTREE_HEADER_SIZE
+	leafNodes, err := bigdata.LoadLeafNodesForRPNode(b.URL, b.ByteOrder, rootNodeOffset, startChromIndex, startBase, endChromIndex, endBase)
 	if err != nil {
 		return nil, err
 	}
@@ -248,13 +226,13 @@ func (b *BigWig) ReadBigWigData(startChrom string, startBase int32, endChrom str
 	// Iterate through leaf nodes and decode data
 	allData := []BigWigData{}
 	for _, leafNode := range leafNodes {
-		leafData, err := common.RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))
+		leafData, err := bigdata.RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))
 		if err != nil {
 			return nil, err
 		}
 
 		// Decompress if necessary
-		leafData, err = decompressData(leafData, b.Header.UncompressBuffSize > 0)
+		leafData, err = bigdata.DecompressData(leafData, b.Header.UncompressBuffSize > 0)
 		if err != nil {
 			return nil, err
 		}

@@ -3,8 +3,8 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"gb-api/track/bigbed"
-	"gb-api/track/bigwig"
+	"gb-api/track/bigdata/bigbed"
+	"gb-api/track/bigdata/bigwig"
 	"io"
 	"net/http"
 	"net/http/httptest"

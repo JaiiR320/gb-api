@@ -1,22 +1,16 @@
-package bigwig
+package bigdata
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"gb-api/track/common"
+
 	"gb-api/utils"
 )
 
-// loadLeafNodesForRPNode is the internal version used by BigWig
-func loadLeafNodesForRPNode(b *BigWig, nodeOffset uint64, startChromIx int32, startBase int32,
-	endChromIx int32, endBase int32) ([]common.RPLeafNode, error) {
-	return common.LoadLeafNodesForRPNode(b.URL, b.ByteOrder, nodeOffset, startChromIx, startBase, endChromIx, endBase)
-}
-
-// LoadHeader loads and parses the BigWig file header
-func (b *BigWig) LoadHeader() error {
-	data, err := common.RequestBytes(b.URL, 0, common.BBFILE_HEADER_SIZE)
+// LoadHeader loads and parses the BigBed file header
+func (b *BigData) LoadHeader(lth uint32, htl uint32) error {
+	data, err := RequestBytes(b.URL, 0, BBFILE_HEADER_SIZE)
 	if err != nil {
 		return err
 	}
@@ -31,7 +25,7 @@ func (b *BigWig) LoadHeader() error {
 	}
 
 	// If magic doesn't match, try big endian
-	if magic != BIGWIG_MAGIC_LTH {
+	if magic != lth {
 		byteOrder = binary.BigEndian
 		p = utils.NewParser(bytes.NewReader(data), byteOrder)
 
@@ -39,8 +33,8 @@ func (b *BigWig) LoadHeader() error {
 		if err != nil {
 			return err
 		}
-		if magic != BIGWIG_MAGIC_HTL {
-			return fmt.Errorf("invalid BigWig magic number: 0x%08X", magic)
+		if magic != htl {
+			return fmt.Errorf("invalid file magic number: 0x%08X", magic)
 		}
 	}
 
@@ -55,8 +49,8 @@ func (b *BigWig) LoadHeader() error {
 	return nil
 }
 
-// LoadMetaData loads BigWig metadata including zoom levels, autoSql, total summary, and chromosome tree
-func (b *BigWig) LoadMetaData(data []byte) error {
+// LoadMetaData loads BigBed metadata including zoom levels, autoSql, total summary, and chromosome tree
+func (b *BigData) LoadMetaData(data []byte) error {
 	p := utils.NewParser(bytes.NewReader(data), b.ByteOrder)
 
 	b.ZoomLevels = make([]ZoomLevelHeader, b.Header.NZoomLevels)
@@ -78,7 +72,7 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 
 	var autosql string
 	if b.Header.AutoSqlOffset != 0 {
-		_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.AutoSqlOffset), 0)
+		_, err := p.SetPosition(FileOffsetToBufferOffset(b.Header.AutoSqlOffset), 0)
 		if err != nil {
 			return err
 		}
@@ -90,9 +84,9 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 
 	b.AutoSql = autosql
 
-	var totalSummary BWTotalSummary
+	var totalSummary TotalSummary
 	if b.Header.TotalSummaryOffset != 0 {
-		_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.TotalSummaryOffset), 0)
+		_, err := p.SetPosition(FileOffsetToBufferOffset(b.Header.TotalSummaryOffset), 0)
 		if err != nil {
 			return err
 		}
@@ -109,8 +103,8 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 	}
 	b.TotalSummary = totalSummary
 
-	var chromTree common.ChromTree
-	_, err := p.SetPosition(common.FileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
+	var chromTree ChromTree
+	_, err := p.SetPosition(FileOffsetToBufferOffset(b.Header.ChromTreeOffset), 0)
 	if err != nil {
 		return err
 	}
@@ -118,7 +112,7 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if magic != common.CHROM_TREE_MAGIC {
+	if magic != CHROM_TREE_MAGIC {
 		return fmt.Errorf("chromosome B+ tree not found at offset %d", b.Header.ChromTreeOffset)
 	}
 
@@ -136,7 +130,7 @@ func (b *BigWig) LoadMetaData(data []byte) error {
 	chromTree.ChromSize = make(map[string]int32)
 	chromTree.IDToChrom = make(map[int32]string)
 
-	err = common.BuildChromTree(&chromTree, p, nil)
+	err = BuildChromTree(&chromTree, p, nil)
 	if err != nil {
 		return err
 	}

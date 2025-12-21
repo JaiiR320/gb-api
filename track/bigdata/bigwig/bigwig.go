@@ -2,21 +2,22 @@ package bigwig
 
 import (
 	"errors"
-	"gb-api/track/common"
+	"gb-api/track/bigdata"
 )
 
 func ReadBigWig(url string, chrom string, start int, end int) ([]BigWigData, error) {
-	bw := BigWig{}
-	bw.URL = url
+	bw := BigWig{
+		BigData: &bigdata.BigData{URL: url},
+	}
 
 	// Load header
-	err := bw.LoadHeader()
+	err := bw.LoadHeader(BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
 	if err != nil {
 		return nil, errors.New("Failed to load BigWig header: " + err.Error())
 	}
 
 	// Load metadata
-	metaData, err := common.RequestBytes(bw.URL, 64, int(bw.Header.FullDataOffset)-64+5)
+	metaData, err := bigdata.RequestBytes(bw.URL, 64, int(bw.Header.FullDataOffset)-64+5)
 	if err != nil {
 		return nil, errors.New("Failed to request metadata: " + err.Error())
 	}

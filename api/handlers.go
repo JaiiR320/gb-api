@@ -3,8 +3,8 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"gb-api/track/bigbed"
-	"gb-api/track/bigwig"
+	"gb-api/track/bigdata/bigbed"
+	"gb-api/track/bigdata/bigwig"
 	"gb-api/track/transcript"
 	"log/slog"
 	"net/http"
