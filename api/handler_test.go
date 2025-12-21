@@ -36,13 +36,20 @@ func TestBigWigHandler(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	var bigWigData []bigwig.BigWigData
-	err = json.Unmarshal(response.Data, &bigWigData)
+	dataBytes, err := json.Marshal(response.Data)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	if len(bigWigData) != 101 {
-		t.Fail()
+	var bigWigData []bigwig.BigWigData
+	err = json.Unmarshal(dataBytes, &bigWigData)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	comp := bigwig.BigWigData{Chr: "chr19", Start: 44905740, End: 44905760, Value: 610.4453}
+
+	if bigWigData[0] != comp {
+		t.Errorf("Expected first element to be %+v, got %+v", comp, bigWigData[0])
 	}
 }
