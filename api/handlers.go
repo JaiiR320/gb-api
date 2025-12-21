@@ -9,118 +9,65 @@ import (
 	"net/http"
 )
 
-// BigWigHandler accepts arbitrary BigWig URLs to enable users to visualize
-// genomic data from any source: public databases, company servers, or local files.
-// This flexibility is intentional to support experimentation and personal data exploration.
-// Users can provide URLs pointing to:
-//   - Public databases (UCSC, ENCODE, etc.)
-//   - Company internal servers (http://internal-server/data.bigwig)
-//   - Local files (http://localhost:8000/mydata.bigwig)
-//
-// URLs are validated to be BigWig format via header checking, but no domain
-// restrictions are applied to preserve maximum flexibility.
-func BigWigHandler(w http.ResponseWriter, r *http.Request) {
-	uuid := UUID()
-	logger := slog.With("ID", uuid)
-	logger.Info("Handling bigwig request")
-
+func TrackHandler[Req any](w http.ResponseWriter, r *http.Request, l *slog.Logger, fetch func(req Req) (any, error)) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		logger.Error("Method not allowed", "method", r.Method)
+		l.Error("Method not allowed", "method", r.Method)
 		return
 	}
 
-	var request BigWigRequest
+	var request Req
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Failed to decode request", http.StatusBadRequest)
-		logger.Error("Failed to decode request", "error", err)
+		l.Error("Failed to decode request", "error", err)
 		return
 	}
 
-	logger.Info("Reading bigwig", "url", request.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End)
-	data, err := bigwig.ReadBigWig(request.URL, request.Chrom, request.Start, request.End)
+	data, err := fetch(request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logger.Error("Failed to get bigWig data", "error", err, "url", request.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End)
-		return
-	}
-
-	d, err := json.Marshal(data)
-	if err != nil {
-		http.Error(w, "Failed to marshal data", http.StatusInternalServerError)
-		logger.Error("Failed to marshal data", "error", err)
+		l.Error("Failed to data", "error", err)
 		return
 	}
 
 	response := TrackResponse{
-		Data: d,
+		Data: data,
 	}
 
 	responseBytes, err := json.Marshal(response)
 	if err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		logger.Error("Failed to encode response", "error", err)
+		l.Error("Failed to encode response", "error", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if _, err = w.Write(responseBytes); err != nil {
-		logger.Error("Failed to write response", "error", err)
+		l.Error("Failed to write response", "error", err)
 	}
+}
 
-	logger.Info("Finished bigwig request")
+func BigWigHandler(w http.ResponseWriter, r *http.Request) {
+	uuid := UUID()
+	l := slog.With("ID", uuid)
+	l.Info("Handling bigwig request")
+	TrackHandler(w, r, l, func(req BigWigRequest) (any, error) {
+		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End)
+		data, err := bigwig.ReadBigWig(req.URL, req.Chrom, req.Start, req.End)
+		return data, err
+	})
+	l.Info("Finished bigwig request")
 }
 
 func TranscriptHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
-	logger := slog.With("ID", uuid)
-	logger.Info("Handling transcript request")
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		logger.Error("Method not allowed", "method", r.Method)
-		return
-	}
-
-	var request TranscriptRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Failed to decode request", http.StatusBadRequest)
-		logger.Error("Failed to decode request", "error", err)
-		return
-	}
-
-	logger.Info("Getting transcripts", "chrom", request.Chrom, "start", request.Start, "end", request.End)
-	data, err := transcript.GetTranscripts(request.Chrom, request.Start, request.End)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logger.Error("Failed to get transcript data", "error", err, "chrom", request.Chrom, "start", request.Start, "end", request.End)
-		return
-	}
-
-	d, err := json.Marshal(data)
-	if err != nil {
-		http.Error(w, "Failed to marshal data", http.StatusInternalServerError)
-		logger.Error("Failed to marshal data", "error", err)
-		return
-	}
-
-	response := TrackResponse{
-		Data: d,
-	}
-
-	responseBytes, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		logger.Error("Failed to encode response", "error", err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if _, err = w.Write(responseBytes); err != nil {
-		logger.Error("Failed to write response", "error", err)
-	}
-
-	logger.Info("Finished transcript request")
+	l := slog.With("ID", uuid)
+	l.Info("Handling transcript request")
+	TrackHandler(w, r, l, func(req TranscriptRequest) (any, error) {
+		l.Info("Getting transcripts", "chrom", req.Chrom, "start", req.Start, "end", req.End)
+		return transcript.GetTranscripts(req.Chrom, req.Start, req.End)
+	})
+	l.Info("Finished transcript request")
 }
 
 func BrowserHandler(w http.ResponseWriter, r *http.Request) {
@@ -176,6 +123,7 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 	var data any
 	var err error
 
+	// Track data fetchers
 	switch t.Type {
 	case "bigwig":
 		cfg, err := t.GetBigWigConfig()
@@ -186,6 +134,11 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 		logger.Info("Reading bigWig", "url", cfg.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End)
 		data, err = bigwig.ReadBigWig(cfg.URL, request.Chrom, request.Start, request.End)
 	case "transcript":
+		_, err := t.GetTranscriptConfig()
+		if err != nil {
+			err = fmt.Errorf("Could not get Transcript config, %w", err)
+			break
+		}
 		logger.Info("Getting transcripts", "chrom", request.Chrom, "start", request.Start, "end", request.End)
 		data, err = transcript.GetTranscripts(request.Chrom, request.Start, request.End)
 	default:
@@ -218,5 +171,4 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 		Type: t.Type,
 		Data: d,
 	}
-
 }

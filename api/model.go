@@ -29,10 +29,10 @@ type BrowserRequest struct {
 }
 
 type TrackResponse struct {
-	ID    string          `json:"id,omitempty"`
-	Type  string          `json:"type,omitempty"`
-	Data  json.RawMessage `json:"data"`
-	Error string          `json:"error,omitempty"`
+	ID    string `json:"id,omitempty"`
+	Type  string `json:"type,omitempty"`
+	Data  any    `json:"data"`
+	Error string `json:"error,omitempty"`
 }
 
 type BrowserResponse struct {
