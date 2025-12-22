@@ -1,7 +1,7 @@
 package bigwig
 
 import (
-	"errors"
+	"fmt"
 	"gb-api/track/bigdata"
 )
 
@@ -22,24 +22,19 @@ type BigWigData struct {
 	Value float32 `json:"value"`
 }
 
+func getBigWig(url string) (*bigdata.BigData, error) {
+	return bigdata.New(url, BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
+}
+
 func ReadBigWig(url string, chr string, start int, end int) ([]BigWigData, error) {
-	bw := BigWig{
-		BigData: &bigdata.BigData{URL: url},
+	bw, err := getBigWig(url)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create bigwig, %w", err)
+	}
+	data, err := bigdata.ReadData(bw, chr, int32(start), int32(end), decodeWigData)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read BigWig data, %w", err)
 	}
 
-	err := bw.LoadHeader(BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
-	if err != nil {
-		return nil, errors.New("Failed to load BigBed header: " + err.Error())
-	}
-
-	err = bw.LoadMetaData()
-	if err != nil {
-		return nil, errors.New("Failed to load metadata: " + err.Error())
-	}
-
-	data, err := bigdata.ReadData(bw.BigData, chr, int32(start), int32(end), decodeWigData)
-	if err != nil {
-		return nil, errors.New("Failed to read BigWig data: " + err.Error())
-	}
 	return data, nil
 }

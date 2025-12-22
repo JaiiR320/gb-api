@@ -9,7 +9,7 @@ import (
 )
 
 // LoadHeader loads and parses the BigBed file header
-func (b *BigData) LoadHeader(lth uint32, htl uint32) error {
+func (b *BigData) LoadHeader() error {
 	data, err := RequestBytes(b.URL, 0, BBFILE_HEADER_SIZE)
 	if err != nil {
 		return err
@@ -25,7 +25,7 @@ func (b *BigData) LoadHeader(lth uint32, htl uint32) error {
 	}
 
 	// If magic doesn't match, try big endian
-	if magic != lth {
+	if magic != b.LTH {
 		byteOrder = binary.BigEndian
 		p = utils.NewParser(bytes.NewReader(data), byteOrder)
 
@@ -33,7 +33,7 @@ func (b *BigData) LoadHeader(lth uint32, htl uint32) error {
 		if err != nil {
 			return err
 		}
-		if magic != htl {
+		if magic != b.HTL {
 			return fmt.Errorf("invalid file magic number: 0x%08X", magic)
 		}
 	}

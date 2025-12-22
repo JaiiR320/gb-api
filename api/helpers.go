@@ -52,7 +52,7 @@ func TrackHandler[Req any, Data any](w http.ResponseWriter, r *http.Request, l *
 		l.Error("Failed to encode response", "error", err)
 		return
 	}
-
+	w.Header().Set("X-Cache-Status", "HIT") // or "MISS"
 	w.Header().Set("Content-Type", "application/json")
 	if _, err = w.Write(responseBytes); err != nil {
 		l.Error("Failed to write response", "error", err)

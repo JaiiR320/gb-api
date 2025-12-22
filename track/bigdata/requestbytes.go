@@ -4,7 +4,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
+
+var httpClient = &http.Client{
+	Timeout: 30 * time.Second,
+	Transport: &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 20,
+		IdleConnTimeout:     90 * time.Second,
+		DisableCompression:  true, // Handle compression manually
+	},
+}
 
 func RequestBytes(url string, offset int, length int) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
@@ -15,8 +26,7 @@ func RequestBytes(url string, offset int, length int) ([]byte, error) {
 	rangeHeader := fmt.Sprintf("bytes=%d-%d", offset, offset+length-1)
 	req.Header.Set("Range", rangeHeader)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package bigdata
 
 import (
 	"encoding/binary"
+	"errors"
 )
 
 const (
@@ -16,6 +17,8 @@ type BigData struct {
 	AutoSql      string            `json:"autoSql,omitempty"`
 	TotalSummary TotalSummary      `json:"totalSummary"`
 	ChromTree    ChromTree         `json:"chromTree"`
+	LTH          uint32            `json:"lowToHigh"`
+	HTL          uint32            `json:"highToLow"`
 }
 
 type Header struct {
@@ -46,4 +49,27 @@ type TotalSummary struct {
 	MaxVal       float64 `json:"maxVal"`
 	SumData      float64 `json:"sumData"`
 	SumSquares   float64 `json:"sumSquares"`
+}
+
+func New(url string, lth uint32, htl uint32) (*BigData, error) {
+	b := BigData{URL: url, LTH: lth, HTL: htl}
+	err := b.LoadHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.LoadMetaData()
+	if err != nil {
+		return nil, err
+	}
+
+	return &b, nil
+}
+
+func ReadBigData[T any](b *BigData, chr string, start int, end int, decode DataDecoder[T]) ([]T, error) {
+	data, err := ReadData(b, chr, int32(start), int32(end), decode)
+	if err != nil {
+		return nil, errors.New("Failed to read BigWig data: " + err.Error())
+	}
+	return data, nil
 }

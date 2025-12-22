@@ -1,7 +1,7 @@
 package bigbed
 
 import (
-	"errors"
+	"fmt"
 	"gb-api/track/bigdata"
 )
 
@@ -23,23 +23,13 @@ type BigBedData struct {
 }
 
 func ReadBigBed(url string, chr string, start int, end int) ([]BigBedData, error) {
-	bb := BigBed{
-		BigData: &bigdata.BigData{URL: url},
-	}
-
-	err := bb.LoadHeader(BIGBED_MAGIC_LTH, BIGBED_MAGIC_HTL)
+	bb, err := bigdata.New(url, BIGBED_MAGIC_LTH, BIGBED_MAGIC_HTL)
 	if err != nil {
-		return nil, errors.New("Failed to load BigBed header: " + err.Error())
+		return nil, fmt.Errorf("Failed to create bigbed, %w", err)
 	}
-
-	err = bb.LoadMetaData()
+	data, err := bigdata.ReadData(bb, chr, int32(start), int32(end), decodeBedData)
 	if err != nil {
-		return nil, errors.New("Failed to load metadata: " + err.Error())
-	}
-
-	data, err := bigdata.ReadData(bb.BigData, chr, int32(start), int32(end), decodeBedData)
-	if err != nil {
-		return nil, errors.New("Failed to read BigWig data: " + err.Error())
+		return nil, fmt.Errorf("Failed to read BigWig data, %w", err)
 	}
 	return data, nil
 }
