@@ -141,5 +141,21 @@ func (b *BigData) LoadMetaData() error {
 	}
 	b.ChromTree = chromTree
 
+	treeOffset := b.Header.FullIndexOffset
+	headerData, err := RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
+	if err != nil {
+		return err
+	}
+
+	p = utils.NewParser(bytes.NewReader(headerData), b.ByteOrder)
+	magic, err = p.GetUInt32()
+	if err != nil {
+		return err
+	}
+
+	if magic != IDX_MAGIC {
+		return fmt.Errorf("R+ tree not found at offset %d", treeOffset)
+	}
+
 	return nil
 }

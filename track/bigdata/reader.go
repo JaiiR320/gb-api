@@ -1,9 +1,7 @@
 package bigdata
 
 import (
-	"bytes"
 	"fmt"
-	"gb-api/utils"
 )
 
 // Decoder function signature
@@ -20,24 +18,8 @@ func ReadData[T any](
 	}
 	endChromIndex := startChromIndex // same chrom
 
-	// Read R+ tree header
-	treeOffset := b.Header.FullIndexOffset
-	headerData, err := RequestBytes(b.URL, int(treeOffset), RPTREE_HEADER_SIZE)
-	if err != nil {
-		return nil, err
-	}
-
-	p := utils.NewParser(bytes.NewReader(headerData), b.ByteOrder)
-	magic, err := p.GetUInt32()
-	if err != nil {
-		return nil, err
-	}
-
-	if magic != IDX_MAGIC {
-		return nil, fmt.Errorf("R+ tree not found at offset %d", treeOffset)
-	}
-
 	// Load leaf nodes from R+ tree
+	treeOffset := b.Header.FullIndexOffset
 	rootNodeOffset := treeOffset + RPTREE_HEADER_SIZE
 	leafNodes, err := LoadLeafNodesForRPNode(b.URL, b.ByteOrder, rootNodeOffset, startChromIndex, start, endChromIndex, end)
 	if err != nil {
@@ -47,6 +29,7 @@ func ReadData[T any](
 	// Iterate through leaf nodes and decode data
 	allData := []T{}
 	for _, leafNode := range leafNodes {
+
 		leafData, err := RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))
 		if err != nil {
 			return nil, err

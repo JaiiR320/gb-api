@@ -6,7 +6,7 @@ import (
 	"gb-api/utils"
 )
 
-// LoadLeafNodesForRPNode recursively loads leaf nodes from the R+ tree (exported for use by bigbed)
+// LoadLeafNodesForRPNode recursively loads leaf nodes from the R+ tree
 func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset uint64, startChromIx int32, startBase int32,
 	endChromIx int32, endBase int32) ([]RPLeafNode, error) {
 
