@@ -22,8 +22,23 @@ type BigWigData struct {
 	Value float32 `json:"value"`
 }
 
+var BigWigCache *bigdata.Cache
+
+func init() {
+	BigWigCache = bigdata.NewCache()
+}
+
 func getBigWig(url string) (*bigdata.BigData, error) {
-	return bigdata.New(url, BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
+	if cached, ok := BigWigCache.Get(url); ok {
+		return cached, nil
+	}
+	bw, err := bigdata.New(url, BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
+	if err != nil {
+		return nil, err
+	}
+
+	BigWigCache.Set(url, bw)
+	return bw, nil
 }
 
 func ReadBigWig(url string, chr string, start int, end int) ([]BigWigData, error) {
