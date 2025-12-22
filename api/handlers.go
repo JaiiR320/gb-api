@@ -116,6 +116,14 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 		}
 		logger.Info("Reading bigWig", "url", cfg.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End)
 		data, err = bigwig.ReadBigWig(cfg.URL, request.Chrom, request.Start, request.End)
+	case "bigbed":
+		cfg, err := t.GetBigBedConfig()
+		if err != nil {
+			err = fmt.Errorf("Could not get BigBedconfig, %w", err)
+			break
+		}
+		logger.Info("Reading bigBed", "url", cfg.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End)
+		data, err = bigbed.ReadBigBed(cfg.URL, request.Chrom, request.Start, request.End)
 	case "transcript":
 		_, err := t.GetTranscriptConfig()
 		if err != nil {
@@ -138,20 +146,9 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 		return
 	}
 
-	d, err := json.Marshal(data)
-	if err != nil {
-		results <- TrackResponse{
-			ID:    t.ID,
-			Type:  t.Type,
-			Error: fmt.Sprintf("Failed to marshal data: %v", err),
-		}
-		logger.Error("Failed to marshal data", "error", err)
-		return
-	}
-
 	results <- TrackResponse{
 		ID:   t.ID,
 		Type: t.Type,
-		Data: d,
+		Data: data,
 	}
 }

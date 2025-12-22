@@ -60,6 +60,11 @@ type BigWigConfig struct {
 	PreRenderedWidth int    `json:"preRenderedWidth"`
 }
 
+type BigBedConfig struct {
+	URL  string `json:"url"`
+	Type string `json:"type"`
+}
+
 type Assembly string
 
 const (
@@ -73,6 +78,12 @@ type TranscriptConfig struct {
 
 func (t *Track) GetBigWigConfig() (BigWigConfig, error) {
 	var config BigWigConfig
+	err := json.Unmarshal(t.Config, &config)
+	return config, err
+}
+
+func (t *Track) GetBigBedConfig() (BigBedConfig, error) {
+	var config BigBedConfig
 	err := json.Unmarshal(t.Config, &config)
 	return config, err
 }
