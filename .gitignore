@@ -4,3 +4,4 @@ gb-api
 test/response/*
 track/transcript/data/*
 !track/transcript/data/v40/
+*.gtf
