@@ -30,10 +30,8 @@ func init() {
 
 func getBigBed(url string) (*bigdata.BigData, error) {
 	if cached, ok := BigBedCache.Get(url); ok {
-		fmt.Println("found in cache")
 		return cached, nil
 	}
-	fmt.Println("not in cache")
 	bw, err := bigdata.New(url, BIGBED_MAGIC_LTH, BIGBED_MAGIC_HTL)
 	if err != nil {
 		return nil, err
