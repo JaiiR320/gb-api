@@ -10,12 +10,14 @@ import (
 func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset uint64, startChromIx int32, startBase int32,
 	endChromIx int32, endBase int32) ([]RPLeafNode, error) {
 
-	data, err := RequestBytes(url, int(nodeOffset), 4)
+	// Fetch header + node data in single request (4KB prefetch buffer)
+	data, err := RequestBytes(url, int(nodeOffset), RPTREE_NODE_PREFETCH_SIZE)
 	if err != nil {
 		return nil, err
 	}
 
-	p := utils.NewParser(bytes.NewReader(data), byteOrder)
+	// Parse header from first 4 bytes
+	p := utils.NewParser(bytes.NewReader(data[:4]), byteOrder)
 	isLeaf, err := p.GetUInt8()
 	if err != nil {
 		return nil, err
@@ -32,18 +34,35 @@ func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset u
 		return nil, err
 	}
 
-	leafNodes := []RPLeafNode{}
-
+	// Calculate required data size based on node type
+	var itemSize int
 	if isLeaf == RPTREE_NODE_LEAF {
-		// This is a leaf node - read leaf items
-		itemSize := 32 // Each leaf item is 32 bytes
-		data, err := RequestBytes(url, int(nodeOffset)+4, int(count)*itemSize)
+		itemSize = 32 // Leaf items: 4×uint32 + 2×uint64 = 32 bytes
+	} else {
+		itemSize = 24 // Child items: 4×uint32 + 1×uint64 = 24 bytes
+	}
+	requiredDataSize := int(count) * itemSize
+
+	// Check if all data is already in prefetch buffer
+	var nodeData []byte
+	if 4+requiredDataSize <= RPTREE_NODE_PREFETCH_SIZE {
+		// Common case: all data in buffer, no additional fetch needed
+		nodeData = data[4 : 4+requiredDataSize]
+	} else {
+		// Rare case: node exceeds 4KB, fetch remaining data
+		nodeData, err = RequestBytes(url, int(nodeOffset)+4, requiredDataSize)
 		if err != nil {
 			return nil, err
 		}
+	}
 
-		p := utils.NewParser(bytes.NewReader(data), byteOrder)
+	// Create parser for node data
+	p = utils.NewParser(bytes.NewReader(nodeData), byteOrder)
 
+	leafNodes := []RPLeafNode{}
+
+	if isLeaf == RPTREE_NODE_LEAF {
+		// This is a leaf node - read leaf items directly from nodeData (already in memory)
 		for range count {
 			var leaf RPLeafNode
 			err := p.ReadMultiple(
@@ -65,15 +84,8 @@ func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset u
 			}
 		}
 	} else {
-		// This is a child node - recursively process children
-		itemSize := 24 // Each child item is 24 bytes
-		data, err := RequestBytes(url, int(nodeOffset)+4, int(count)*itemSize)
-		if err != nil {
-			return nil, err
-		}
-
-		p := utils.NewParser(bytes.NewReader(data), byteOrder)
-
+		// This is a child node - parse all children and filter for overlapping ones
+		overlappingChildren := make([]RPChildNode, 0, count)
 		for range count {
 			var child RPChildNode
 			err := p.ReadMultiple(
@@ -87,15 +99,40 @@ func LoadLeafNodesForRPNode(url string, byteOrder binary.ByteOrder, nodeOffset u
 				return nil, err
 			}
 
-			// Check if this child overlaps with our query range
+			// Only process children that overlap with query range
 			if overlaps(child.StartChromIx, child.StartBase, child.EndChromIx, child.EndBase,
 				uint32(startChromIx), uint32(startBase), uint32(endChromIx), uint32(endBase)) {
-				childLeaves, err := LoadLeafNodesForRPNode(url, byteOrder, child.ChildOffset, startChromIx, startBase, endChromIx, endBase)
-				if err != nil {
-					return nil, err
-				}
-				leafNodes = append(leafNodes, childLeaves...)
+				overlappingChildren = append(overlappingChildren, child)
 			}
+		}
+
+		// Process overlapping children in parallel
+		type childResult struct {
+			leaves []RPLeafNode
+			err    error
+		}
+
+		resultsChan := make(chan childResult, len(overlappingChildren))
+
+		// Spawn goroutine for each overlapping child
+		for _, child := range overlappingChildren {
+			childCopy := child // Capture for goroutine closure
+			go func() {
+				childLeaves, err := LoadLeafNodesForRPNode(
+					url, byteOrder, childCopy.ChildOffset,
+					startChromIx, startBase, endChromIx, endBase,
+				)
+				resultsChan <- childResult{leaves: childLeaves, err: err}
+			}()
+		}
+
+		// Collect results from all goroutines
+		for range overlappingChildren {
+			result := <-resultsChan
+			if result.err != nil {
+				return nil, result.err
+			}
+			leafNodes = append(leafNodes, result.leaves...)
 		}
 	}
 
