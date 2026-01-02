@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"gb-api/track/bigdata/bigbed"
-	"gb-api/track/bigdata/bigwig"
 	"gb-api/track/transcript"
 	"log/slog"
 	"net/http"
@@ -16,7 +15,7 @@ func BigWigHandler(w http.ResponseWriter, r *http.Request) {
 	l.Info("Handling bigwig request")
 	TrackHandler(w, r, l, func(req BigWigRequest) (any, error) {
 		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End)
-		return bigwig.ReadBigWig(req.URL, req.Chrom, req.Start, req.End)
+		return WigCache.GetCachedWigData(req.URL, req.Chrom, req.Start, req.End)
 	})
 	l.Info("Finished bigwig request")
 }
@@ -115,7 +114,7 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 			break
 		}
 		logger.Info("Reading bigWig", "url", cfg.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End)
-		data, err = bigwig.ReadBigWig(cfg.URL, request.Chrom, request.Start, request.End)
+		data, err = WigCache.GetCachedWigData(cfg.URL, request.Chrom, request.Start, request.End)
 	case "bigbed":
 		cfg, err := t.GetBigBedConfig()
 		if err != nil {

@@ -38,15 +38,6 @@ type Exon struct {
 	StopCodon  *GenomicRange  `json:"stop_codon,omitempty"`
 }
 
-func ToMap(genes []Gene) map[string]Gene {
-	var geneMap = make(map[string]Gene)
-
-	for _, g := range genes {
-		geneMap[g.Name] = g
-	}
-	return geneMap
-}
-
 func ReadGTF(filePath string, posStr string) ([]Gene, error) {
 	records, err := GetRecords(filePath, posStr)
 	if err != nil {

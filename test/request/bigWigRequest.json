@@ -1,6 +1,6 @@
 {
   "chrom": "chr19",
-  "start": 44905754,
-  "end": 44907754,
+  "end": 44916000,
+  "start": 44915000,
   "url": "https://downloads.wenglab.org/DNAse_All_ENCODE_MAR20_2024_merged.bw"
 }
