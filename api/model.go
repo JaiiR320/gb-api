@@ -60,7 +60,7 @@ type BigWigConfig struct {
 
 type BigBedConfig struct {
 	URL  string `json:"url"`
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 }
 
 type Assembly string

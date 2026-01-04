@@ -22,14 +22,18 @@ type BigBedData struct {
 	Rest  string `json:"rest,omitempty"`
 }
 
-var BigBedCache *bigdata.Cache
+var BigBedHeaderCache *bigdata.Cache[*bigdata.BigData]
 
 func init() {
-	BigBedCache = bigdata.NewCache()
+	cache, err := bigdata.NewCache[*bigdata.BigData](25)
+	if err != nil {
+		panic(err)
+	}
+	BigBedHeaderCache = cache
 }
 
 func getBigBed(url string) (*bigdata.BigData, error) {
-	if cached, ok := BigBedCache.Get(url); ok {
+	if cached, ok := BigBedHeaderCache.Get(url); ok {
 		return cached, nil
 	}
 	bw, err := bigdata.New(url, BIGBED_MAGIC_LTH, BIGBED_MAGIC_HTL)
@@ -37,7 +41,7 @@ func getBigBed(url string) (*bigdata.BigData, error) {
 		return nil, err
 	}
 
-	BigBedCache.Set(url, bw)
+	BigBedHeaderCache.Add(url, bw)
 	return bw, nil
 }
 

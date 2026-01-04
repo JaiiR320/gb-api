@@ -1,12 +1,5 @@
 package bigdata
 
-import (
-	"fmt"
-	"sync"
-
-	lru "github.com/hashicorp/golang-lru/v2"
-)
-
 type Range struct {
 	Start int
 	End   int
@@ -18,43 +11,7 @@ type RangeData[T any] struct {
 	Data  []T
 }
 
-type RangeCache[T any] struct {
-	Cache *lru.Cache[string, []RangeData[T]]
-	Mu    sync.RWMutex
-}
-
-func NewRangeCache[T any](size int) (*RangeCache[T], error) {
-	cache, err := lru.New[string, []RangeData[T]](size)
-	if err != nil {
-		return nil, err
-	}
-	return &RangeCache[T]{
-		Cache: cache,
-	}, nil
-}
-
-func (c *RangeCache[T]) Add(id string, data []RangeData[T]) (evicted bool) {
-	c.Mu.Lock()
-	evicted = c.Cache.Add(id, data)
-	c.Mu.Unlock()
-	if evicted {
-		fmt.Println("evicted existing cache")
-	}
-	return evicted
-}
-
-func (c *RangeCache[T]) Get(id string) (data []RangeData[T], hit bool) {
-	c.Mu.RLock()
-	data, hit = c.Cache.Get(id)
-	c.Mu.RUnlock()
-	return data, hit
-}
-
-func (c *RangeCache[T]) Len() (length int) {
-	l := c.Cache.Len()
-	fmt.Printf("cache size: %d/25\n", l)
-	return l
-}
+type RangeDataCache[T any] = Cache[[]RangeData[T]]
 
 // Find non-overlapping ranges given a list of ranges and a requested range
 func FindRanges[T any](start, end int, cached []RangeData[T]) []Range {
@@ -85,4 +42,32 @@ func FindRanges[T any](start, end int, cached []RangeData[T]) []Range {
 		out = append(out, Range{Start: current, End: end})
 	}
 	return out
+}
+
+func MergeRanges[T any](ranges []RangeData[T]) []RangeData[T] {
+	if len(ranges) == 0 {
+		return ranges
+	}
+
+	result := []RangeData[T]{}
+	current := ranges[0] // Start with first range
+
+	for i := 1; i < len(ranges); i++ {
+		next := ranges[i]
+
+		if next.Start <= current.End { // Does next overlap/touch current?
+			// Merge: extend current's end, append data
+			if next.End > current.End {
+				current.End = next.End
+			}
+			current.Data = append(current.Data, next.Data...)
+		} else {
+			// Gap found: save current, start new one
+			result = append(result, current)
+			current = next
+		}
+	}
+
+	result = append(result, current)
+	return result
 }

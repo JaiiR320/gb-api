@@ -8,28 +8,24 @@ import (
 	"sync"
 )
 
-type BigWigCache struct {
-	*bigdata.RangeCache[bigwig.BigWigData]
-}
-
-var WigCache *BigWigCache
+var BigWigDataCache *bigdata.RangeDataCache[bigwig.BigWigData]
 
 func init() {
-	cache, err := bigdata.NewRangeCache[bigwig.BigWigData](25)
+	cache, err := bigdata.NewCache[[]bigdata.RangeData[bigwig.BigWigData]](25)
 	if err != nil {
 		panic(err)
 	}
-	WigCache = &BigWigCache{cache}
+	BigWigDataCache = cache
 }
 
-func (b BigWigCache) GetCachedWigData(url string, chrom string, start, end int) ([]bigwig.BigWigData, error) {
+func GetCachedWigData(url string, chrom string, start, end int) ([]bigwig.BigWigData, error) {
 	fmt.Printf("[Cache] Request: url=%s, chrom=%s, start=%d, end=%d\n", url, chrom, start, end)
 	cacheId := url + "-" + chrom
 	// ranges start out as original request
 	rangesToFetch := []bigdata.Range{{Start: start, End: end}}
 
 	// generate new ranges on cache hit
-	cachedData, hit := b.Get(cacheId)
+	cachedData, hit := BigWigDataCache.Get(cacheId)
 	if hit {
 		fmt.Printf("[Cache] HIT! Found %d cached ranges\n", len(cachedData))
 		rangesToFetch = bigdata.FindRanges(start, end, cachedData)
@@ -77,10 +73,10 @@ func (b BigWigCache) GetCachedWigData(url string, chrom string, start, end int) 
 	})
 
 	// Merge overlapping/adjacent ranges
-	rangeData = mergeRanges[bigwig.BigWigData](rangeData)
+	rangeData = bigdata.MergeRanges(rangeData)
 	fmt.Printf("[Cache] After merging: %d ranges\n", len(rangeData))
 
-	b.Add(cacheId, rangeData)
+	BigWigDataCache.Add(cacheId, rangeData)
 
 	// Filter data to only include points within the requested range
 	var data []bigwig.BigWigData
@@ -100,32 +96,4 @@ func (b BigWigCache) GetCachedWigData(url string, chrom string, start, end int) 
 	fmt.Printf("[Cache] Returning %d data points (filtered from %d to %d)\n", len(data), start, end)
 
 	return data, erra
-}
-
-func mergeRanges[T any](ranges []bigdata.RangeData[T]) []bigdata.RangeData[T] {
-	if len(ranges) == 0 {
-		return ranges
-	}
-
-	result := []bigdata.RangeData[T]{}
-	current := ranges[0] // Start with first range
-
-	for i := 1; i < len(ranges); i++ {
-		next := ranges[i]
-
-		if next.Start <= current.End { // Does next overlap/touch current?
-			// Merge: extend current's end, append data
-			if next.End > current.End {
-				current.End = next.End
-			}
-			current.Data = append(current.Data, next.Data...)
-		} else {
-			// Gap found: save current, start new one
-			result = append(result, current)
-			current = next
-		}
-	}
-
-	result = append(result, current)
-	return result
 }

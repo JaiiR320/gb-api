@@ -6,27 +6,35 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-type Cache struct {
-	Cache *lru.Cache[string, *BigData]
-	Lock  sync.RWMutex
+type Cache[T any] struct {
+	Cache *lru.Cache[string, T]
+	Mu    sync.RWMutex
 }
 
-func NewCache() *Cache {
-	cache, err := lru.New[string, *BigData](25)
+func NewCache[T any](size int) (*Cache[T], error) {
+	cache, err := lru.New[string, T](size)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &Cache{Cache: cache}
+	return &Cache[T]{
+		Cache: cache,
+	}, nil
 }
 
-func (c *Cache) Get(url string) (*BigData, bool) {
-	c.Lock.RLock()
-	defer c.Lock.RUnlock()
-	return c.Cache.Get(url)
+func (c *Cache[T]) Add(key string, val T) (evicted bool) {
+	c.Mu.Lock()
+	evicted = c.Cache.Add(key, val)
+	c.Mu.Unlock()
+	return evicted
 }
 
-func (c *Cache) Set(url string, b *BigData) {
-	c.Lock.Lock()
-	defer c.Lock.Unlock()
-	c.Cache.Add(url, b)
+func (c *Cache[T]) Get(key string) (val T, hit bool) {
+	c.Mu.RLock()
+	val, hit = c.Cache.Get(key)
+	c.Mu.RUnlock()
+	return val, hit
+}
+
+func (c *Cache[T]) Len() (length int) {
+	return c.Cache.Len()
 }
