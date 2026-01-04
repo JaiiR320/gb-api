@@ -1,34 +1,55 @@
-package api
+package bigwig
 
 import (
 	"fmt"
+	"gb-api/cache"
 	"gb-api/track/bigdata"
-	"gb-api/track/bigdata/bigwig"
 	"sort"
 	"sync"
 )
 
-var BigWigDataCache *bigdata.RangeDataCache[bigwig.BigWigData]
+// create a cache for headers, and for data ranges
+var BigWigHeaderCache *cache.Cache[*bigdata.BigData]
+var BigWigDataCache *cache.RangeDataCache[BigWigData]
 
 func init() {
-	cache, err := bigdata.NewCache[[]bigdata.RangeData[bigwig.BigWigData]](25)
+	dataCache, err := cache.NewCache[[]cache.RangeData[BigWigData]](25)
 	if err != nil {
 		panic(err)
 	}
-	BigWigDataCache = cache
+	BigWigDataCache = dataCache
+
+	headerCache, err := cache.NewCache[*bigdata.BigData](25)
+	if err != nil {
+		panic(err)
+	}
+	BigWigHeaderCache = headerCache
 }
 
-func GetCachedWigData(url string, chrom string, start, end int) ([]bigwig.BigWigData, error) {
+func getCachedHeader(url string) (*bigdata.BigData, error) {
+	if cached, ok := BigWigHeaderCache.Get(url); ok {
+		return cached, nil
+	}
+	bw, err := bigdata.New(url, BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
+	if err != nil {
+		return nil, err
+	}
+
+	BigWigHeaderCache.Add(url, bw)
+	return bw, nil
+}
+
+func GetCachedWigData(url string, chrom string, start, end int) ([]BigWigData, error) {
 	fmt.Printf("[Cache] Request: url=%s, chrom=%s, start=%d, end=%d\n", url, chrom, start, end)
 	cacheId := url + "-" + chrom
 	// ranges start out as original request
-	rangesToFetch := []bigdata.Range{{Start: start, End: end}}
+	rangesToFetch := []cache.Range{{Start: start, End: end}}
 
 	// generate new ranges on cache hit
 	cachedData, hit := BigWigDataCache.Get(cacheId)
 	if hit {
 		fmt.Printf("[Cache] HIT! Found %d cached ranges\n", len(cachedData))
-		rangesToFetch = bigdata.FindRanges(start, end, cachedData)
+		rangesToFetch = cache.FindRanges(start, end, cachedData)
 		fmt.Printf("[Cache] Need to fetch %d ranges: %v\n", len(rangesToFetch), rangesToFetch)
 	} else {
 		fmt.Printf("[Cache] MISS! Need to fetch entire range\n")
@@ -37,21 +58,26 @@ func GetCachedWigData(url string, chrom string, start, end int) ([]bigwig.BigWig
 	// stupid race condition temporary solution
 	var erra error
 
-	dchan := make(chan bigdata.RangeData[bigwig.BigWigData], len(rangesToFetch))
+	dchan := make(chan cache.RangeData[BigWigData], len(rangesToFetch))
 
 	var wg sync.WaitGroup
 	wg.Add(len(rangesToFetch))
 
+	bw, err := getCachedHeader(url)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create bigwig, %w", err)
+	}
+
 	for _, r := range rangesToFetch {
-		go func(r bigdata.Range) {
+		go func(r cache.Range) {
 			defer wg.Done()
 			fmt.Printf("[Cache] Goroutine fetching: start=%d, end=%d\n", r.Start, r.End)
-			data, err := bigwig.ReadBigWig(url, chrom, r.Start, r.End)
+			data, err := bigdata.ReadData(bw, chrom, int32(r.Start), int32(r.End), decodeWigData)
 			if err != nil {
 				erra = err
 			}
 
-			rdata := bigdata.RangeData[bigwig.BigWigData]{
+			rdata := cache.RangeData[BigWigData]{
 				Start: r.Start,
 				End:   r.End,
 				Data:  data,
@@ -73,13 +99,13 @@ func GetCachedWigData(url string, chrom string, start, end int) ([]bigwig.BigWig
 	})
 
 	// Merge overlapping/adjacent ranges
-	rangeData = bigdata.MergeRanges(rangeData)
+	rangeData = cache.MergeRanges(rangeData)
 	fmt.Printf("[Cache] After merging: %d ranges\n", len(rangeData))
 
 	BigWigDataCache.Add(cacheId, rangeData)
 
 	// Filter data to only include points within the requested range
-	var data []bigwig.BigWigData
+	var data []BigWigData
 	for _, r := range rangeData {
 		// Only include data from ranges that overlap with the requested region
 		if r.End <= start || r.Start >= end {

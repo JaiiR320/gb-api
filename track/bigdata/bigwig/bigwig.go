@@ -22,34 +22,13 @@ type BigWigData struct {
 	Value float32 `json:"value"`
 }
 
-var BigWigHeaderCache *bigdata.Cache[*bigdata.BigData]
-
-func init() {
-	cache, err := bigdata.NewCache[*bigdata.BigData](25)
-	if err != nil {
-		panic(err)
-	}
-	BigWigHeaderCache = cache
-}
-
-func getBigWig(url string) (*bigdata.BigData, error) {
-	if cached, ok := BigWigHeaderCache.Get(url); ok {
-		return cached, nil
-	}
+// simple implementation, no caching
+func ReadBigWig(url string, chr string, start int, end int) ([]BigWigData, error) {
 	bw, err := bigdata.New(url, BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
 	if err != nil {
 		return nil, err
 	}
 
-	BigWigHeaderCache.Add(url, bw)
-	return bw, nil
-}
-
-func ReadBigWig(url string, chr string, start int, end int) ([]BigWigData, error) {
-	bw, err := getBigWig(url)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create bigwig, %w", err)
-	}
 	data, err := bigdata.ReadData(bw, chr, int32(start), int32(end), decodeWigData)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read BigWig data, %w", err)

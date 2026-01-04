@@ -2,6 +2,7 @@ package bigbed
 
 import (
 	"fmt"
+	"gb-api/cache"
 	"gb-api/track/bigdata"
 )
 
@@ -22,10 +23,10 @@ type BigBedData struct {
 	Rest  string `json:"rest,omitempty"`
 }
 
-var BigBedHeaderCache *bigdata.Cache[*bigdata.BigData]
+var BigBedHeaderCache *cache.Cache[*bigdata.BigData]
 
 func init() {
-	cache, err := bigdata.NewCache[*bigdata.BigData](25)
+	cache, err := cache.NewCache[*bigdata.BigData](25)
 	if err != nil {
 		panic(err)
 	}
