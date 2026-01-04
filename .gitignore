@@ -1,6 +1,6 @@
 main
 gb-api
 
-test/response/*
+test/response/*.json
 track/transcript/data/*
 !track/transcript/data/v40/
