@@ -47,7 +47,11 @@ func TranscriptHandler(w http.ResponseWriter, r *http.Request) {
 	l.Info("Handling transcript request")
 	TrackHandler(w, r, l, func(req TranscriptRequest) (any, error) {
 		l.Info("Getting transcripts", "chrom", req.Chrom, "start", req.Start, "end", req.End)
-		return transcript.GetTranscripts(req.Chrom, req.Start, req.End)
+		data, err := transcript.GetTranscripts(req.Chrom, req.Start, req.End)
+
+		// Use default padding of 100bp for layout
+		const defaultPaddingBp = 100
+		return transcript.LegacyWithLayout(data, defaultPaddingBp, err)
 	})
 	l.Info("Finished transcript request")
 }
@@ -130,7 +134,14 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 			break
 		}
 		logger.Info("Getting transcripts", "chrom", request.Chrom, "start", request.Start, "end", request.End)
-		data, err = transcript.GetTranscripts(request.Chrom, request.Start, request.End)
+		genes, err := transcript.GetTranscripts(request.Chrom, request.Start, request.End)
+		if err != nil {
+			break
+		}
+
+		// Use default padding of 100bp for layout
+		const defaultPaddingBp = 100
+		data, err = transcript.LegacyWithLayout(genes, defaultPaddingBp, nil)
 	default:
 		err = fmt.Errorf("Invalid track type %s", t.Type)
 	}

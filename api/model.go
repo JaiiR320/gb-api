@@ -73,7 +73,7 @@ const (
 )
 
 type TranscriptConfig struct {
-	Assembly string
+	Assembly string `json:"assembly"`
 }
 
 func (t *Track) GetBigWigConfig() (BigWigConfig, error) {

@@ -2,6 +2,7 @@ package transcript
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 )
 
@@ -49,8 +50,16 @@ func ReadGTF(filePath string, posStr string) ([]Gene, error) {
 func buildGenes(records []Record) ([]Gene, error) {
 	var Genes []Gene
 	genesByName := filterByAttribute(records, "gene_name")
-	for geneName, geneRecords := range genesByName {
-		geneObj, err := buildGene(geneName, geneRecords)
+
+	// Sort gene names for deterministic order
+	geneNames := make([]string, 0, len(genesByName))
+	for geneName := range genesByName {
+		geneNames = append(geneNames, geneName)
+	}
+	sort.Strings(geneNames)
+
+	for _, geneName := range geneNames {
+		geneObj, err := buildGene(geneName, genesByName[geneName])
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +168,15 @@ func buildTranscripts(geneRecords []Record, strand string) ([]Transcript, error)
 	// Group records by transcript name
 	transcriptsByName := filterByAttribute(geneRecords, "transcript_name")
 
-	for transcriptName, transcriptRecords := range transcriptsByName {
+	// Sort transcript names for deterministic order
+	transcriptNames := make([]string, 0, len(transcriptsByName))
+	for transcriptName := range transcriptsByName {
+		transcriptNames = append(transcriptNames, transcriptName)
+	}
+	sort.Strings(transcriptNames)
+
+	for _, transcriptName := range transcriptNames {
+		transcriptRecords := transcriptsByName[transcriptName]
 		// Extract the single transcript feature record
 		transcriptFeatureRecords := filterByFeature(transcriptRecords, "transcript")
 		if len(transcriptFeatureRecords) != 1 {
@@ -181,15 +198,9 @@ func buildTranscripts(geneRecords []Record, strand string) ([]Transcript, error)
 		}
 
 		// Extract start and stop codons for this transcript
+		// Note: codons can span splice junctions, resulting in multiple records
 		startCodon := filterByFeature(transcriptRecords, "start_codon")
-		if len(startCodon) > 1 {
-			return nil, fmt.Errorf("expected only one start codon, got %d", len(startCodon))
-		}
-
 		stopCodon := filterByFeature(transcriptRecords, "stop_codon")
-		if len(stopCodon) > 1 {
-			return nil, fmt.Errorf("expected only one stop codon, got %d", len(stopCodon))
-		}
 
 		// Build all exons for this transcript
 		exons, err := buildExons(transcriptRecords, startCodon, stopCodon, strand)
