@@ -16,9 +16,7 @@ func BigWigHandler(w http.ResponseWriter, r *http.Request) {
 	l.Info("Handling bigwig request")
 	TrackHandler(w, r, l, func(req BigWigRequest) (any, error) {
 		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End, "preRenderedWidth", req.PreRenderedWidth)
-		data, err := bigwig.ReadBigWig(req.URL, req.Chrom, req.Start, req.End)
-		// cache slightly broken
-		// data, err := WigCache.GetCachedWigData(req.URL, req.Chrom, req.Start, req.End)
+		data, err := WigCache.GetCachedWigData(req.URL, req.Chrom, req.Start, req.End)
 		if err != nil {
 			return nil, err
 		}

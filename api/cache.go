@@ -82,11 +82,22 @@ func (b BigWigCache) GetCachedWigData(url string, chrom string, start, end int) 
 
 	b.Add(cacheId, rangeData)
 
+	// Filter data to only include points within the requested range
 	var data []bigwig.BigWigData
 	for _, r := range rangeData {
-		data = append(data, r.Data...)
+		// Only include data from ranges that overlap with the requested region
+		if r.End <= start || r.Start >= end {
+			continue // Range doesn't overlap with request
+		}
+
+		// Add data points that fall within the requested range
+		for _, point := range r.Data {
+			if point.Start >= int32(start) && point.Start < int32(end) {
+				data = append(data, point)
+			}
+		}
 	}
-	fmt.Printf("[Cache] Returning %d data points\n", len(data))
+	fmt.Printf("[Cache] Returning %d data points (filtered from %d to %d)\n", len(data), start, end)
 
 	return data, erra
 }
