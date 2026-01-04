@@ -216,11 +216,10 @@ func buildTranscripts(geneRecords []Record, strand string) ([]Transcript, error)
 }
 
 func buildGene(geneName string, geneRecords []Record) (Gene, error) {
-	// Extract the single gene feature record
+	// Extract gene feature records (may be multiple if gene spans regions)
 	geneFeatureRecords := filterByFeature(geneRecords, "gene")
-	if len(geneFeatureRecords) != 1 {
-		return Gene{}, fmt.Errorf("expected exactly one gene record, got %d", len(geneFeatureRecords))
-	}
+
+	// Use the first gene record for metadata (they should all have same gene_id, gene_name, etc.)
 	geneRecord := geneFeatureRecords[0]
 
 	// Create Gene object
