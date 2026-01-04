@@ -6,12 +6,11 @@ import (
 
 // Track requests
 type BigWigRequest struct {
-	URL   string `json:"url"`
-	Chrom string `json:"chrom"`
-	Start int    `json:"start"`
-	End   int    `json:"end"`
-	// ZoomLevel        int    `json:"zoomLevel"`
-	// PreRenderedWidth int    `json:"preRenderedWidth"`
+	URL              string `json:"url"`
+	Chrom            string `json:"chrom"`
+	Start            int    `json:"start"`
+	End              int    `json:"end"`
+	PreRenderedWidth int    `json:"preRenderedWidth,omitempty"` // Number of points to return
 }
 
 type BigBedRequest struct {
@@ -56,8 +55,7 @@ type Track struct {
 
 type BigWigConfig struct {
 	URL              string `json:"url"`
-	ZoomLevel        int    `json:"zoomLevel"`
-	PreRenderedWidth int    `json:"preRenderedWidth"`
+	PreRenderedWidth int    `json:"preRenderedWidth,omitempty"`
 }
 
 type BigBedConfig struct {

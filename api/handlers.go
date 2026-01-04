@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gb-api/track/bigdata/bigbed"
+	"gb-api/track/bigdata/bigwig"
 	"gb-api/track/transcript"
 	"log/slog"
 	"net/http"
@@ -14,8 +15,19 @@ func BigWigHandler(w http.ResponseWriter, r *http.Request) {
 	l := slog.With("ID", uuid)
 	l.Info("Handling bigwig request")
 	TrackHandler(w, r, l, func(req BigWigRequest) (any, error) {
-		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End)
-		return WigCache.GetCachedWigData(req.URL, req.Chrom, req.Start, req.End)
+		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End, "preRenderedWidth", req.PreRenderedWidth)
+		data, err := bigwig.ReadBigWig(req.URL, req.Chrom, req.Start, req.End)
+		// cache slightly broken
+		// data, err := WigCache.GetCachedWigData(req.URL, req.Chrom, req.Start, req.End)
+		if err != nil {
+			return nil, err
+		}
+
+		// Resample to prerendered width if specified
+		if req.PreRenderedWidth > 0 {
+			return bigwig.ResampleToWidth(data, req.PreRenderedWidth), nil
+		}
+		return data, nil
 	})
 	l.Info("Finished bigwig request")
 }
@@ -49,7 +61,6 @@ func TranscriptHandler(w http.ResponseWriter, r *http.Request) {
 		l.Info("Getting transcripts", "chrom", req.Chrom, "start", req.Start, "end", req.End)
 		data, err := transcript.GetTranscripts(req.Chrom, req.Start, req.End)
 
-		// Use default padding of 100bp for layout
 		const defaultPaddingBp = 100
 		return transcript.LegacyWithLayout(data, defaultPaddingBp, err)
 	})
@@ -117,8 +128,18 @@ func getTrackData(t Track, request BrowserRequest, results chan TrackResponse) {
 			err = fmt.Errorf("Could not get BigWig config, %w", err)
 			break
 		}
-		logger.Info("Reading bigWig", "url", cfg.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End)
-		data, err = WigCache.GetCachedWigData(cfg.URL, request.Chrom, request.Start, request.End)
+		logger.Info("Reading bigWig", "url", cfg.URL, "chrom", request.Chrom, "start", request.Start, "end", request.End, "preRenderedWidth", cfg.PreRenderedWidth)
+		wigData, err := WigCache.GetCachedWigData(cfg.URL, request.Chrom, request.Start, request.End)
+		if err != nil {
+			break
+		}
+
+		// Resample to prerendered width if specified
+		if cfg.PreRenderedWidth > 0 {
+			data = bigwig.ResampleToWidth(wigData, cfg.PreRenderedWidth)
+		} else {
+			data = wigData
+		}
 	case "bigbed":
 		cfg, err := t.GetBigBedConfig()
 		if err != nil {
