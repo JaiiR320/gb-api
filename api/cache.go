@@ -6,42 +6,37 @@ import (
 	"gb-api/track/bigdata/bigwig"
 	"sort"
 	"sync"
-
-	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-type BigWigCache bigdata.RangeCache[bigwig.BigWigData]
-
-var WigCache BigWigCache
-
-func init() {
-	cache, err := lru.New[string, []bigdata.RangeData[bigwig.BigWigData]](25)
-	if err != nil {
-		panic("could not create bigwig range cache")
-	}
-
-	WigCache = BigWigCache{
-		Cache: cache,
-	}
+type BigWigCache struct {
+	*bigdata.RangeCache[bigwig.BigWigData]
 }
 
-func (b *BigWigCache) GetCachedWigData(url string, chrom string, start, end int) ([]bigwig.BigWigData, error) {
+var WigCache *BigWigCache
+
+func init() {
+	cache, err := bigdata.NewRangeCache[bigwig.BigWigData](25)
+	if err != nil {
+		panic(err)
+	}
+	WigCache = &BigWigCache{cache}
+}
+
+func (b BigWigCache) GetCachedWigData(url string, chrom string, start, end int) ([]bigwig.BigWigData, error) {
 	fmt.Printf("[Cache] Request: url=%s, chrom=%s, start=%d, end=%d\n", url, chrom, start, end)
 	cacheId := url + "-" + chrom
 	// ranges start out as original request
 	rangesToFetch := []bigdata.Range{{Start: start, End: end}}
 
 	// generate new ranges on cache hit
-	b.Mu.RLock()
-	cachedData, ok := b.Cache.Get(cacheId)
-	if ok {
+	cachedData, hit := b.Get(cacheId)
+	if hit {
 		fmt.Printf("[Cache] HIT! Found %d cached ranges\n", len(cachedData))
 		rangesToFetch = bigdata.FindRanges(start, end, cachedData)
 		fmt.Printf("[Cache] Need to fetch %d ranges: %v\n", len(rangesToFetch), rangesToFetch)
 	} else {
 		fmt.Printf("[Cache] MISS! Need to fetch entire range\n")
 	}
-	b.Mu.RUnlock()
 
 	// stupid race condition temporary solution
 	var erra error
@@ -82,12 +77,10 @@ func (b *BigWigCache) GetCachedWigData(url string, chrom string, start, end int)
 	})
 
 	// Merge overlapping/adjacent ranges
-	rangeData = mergeRanges(rangeData)
+	rangeData = mergeRanges[bigwig.BigWigData](rangeData)
 	fmt.Printf("[Cache] After merging: %d ranges\n", len(rangeData))
 
-	b.Mu.Lock()
-	b.Cache.Add(cacheId, rangeData)
-	b.Mu.Unlock()
+	b.Add(cacheId, rangeData)
 
 	var data []bigwig.BigWigData
 	for _, r := range rangeData {
@@ -98,12 +91,12 @@ func (b *BigWigCache) GetCachedWigData(url string, chrom string, start, end int)
 	return data, erra
 }
 
-func mergeRanges(ranges []bigdata.RangeData[bigwig.BigWigData]) []bigdata.RangeData[bigwig.BigWigData] {
+func mergeRanges[T any](ranges []bigdata.RangeData[T]) []bigdata.RangeData[T] {
 	if len(ranges) == 0 {
 		return ranges
 	}
 
-	result := []bigdata.RangeData[bigwig.BigWigData]{}
+	result := []bigdata.RangeData[T]{}
 	current := ranges[0] // Start with first range
 
 	for i := 1; i < len(ranges); i++ {
@@ -122,7 +115,6 @@ func mergeRanges(ranges []bigdata.RangeData[bigwig.BigWigData]) []bigdata.RangeD
 		}
 	}
 
-	// Don't forget the last one!
 	result = append(result, current)
 	return result
 }

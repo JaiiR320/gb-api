@@ -1,6 +1,7 @@
 package bigdata
 
 import (
+	"fmt"
 	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -20,6 +21,39 @@ type RangeData[T any] struct {
 type RangeCache[T any] struct {
 	Cache *lru.Cache[string, []RangeData[T]]
 	Mu    sync.RWMutex
+}
+
+func NewRangeCache[T any](size int) (*RangeCache[T], error) {
+	cache, err := lru.New[string, []RangeData[T]](size)
+	if err != nil {
+		return nil, err
+	}
+	return &RangeCache[T]{
+		Cache: cache,
+	}, nil
+}
+
+func (c *RangeCache[T]) Add(id string, data []RangeData[T]) (evicted bool) {
+	c.Mu.Lock()
+	evicted = c.Cache.Add(id, data)
+	c.Mu.Unlock()
+	if evicted {
+		fmt.Println("evicted existing cache")
+	}
+	return evicted
+}
+
+func (c *RangeCache[T]) Get(id string) (data []RangeData[T], hit bool) {
+	c.Mu.RLock()
+	data, hit = c.Cache.Get(id)
+	c.Mu.RUnlock()
+	return data, hit
+}
+
+func (c *RangeCache[T]) Len() (length int) {
+	l := c.Cache.Len()
+	fmt.Printf("cache size: %d/25\n", l)
+	return l
 }
 
 // Find non-overlapping ranges given a list of ranges and a requested range
