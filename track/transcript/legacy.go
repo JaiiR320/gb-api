@@ -26,6 +26,7 @@ type LegacyTranscript struct {
 	Exons       []LegacyExon      `json:"exons"`
 	Typename    string            `json:"__typename"`
 	Row         *int              `json:"row,omitempty"` // Row index for stacking (0 = top row)
+	Tag         string            `json:"tag,omitempty"`
 }
 
 type LegacyExon struct {
@@ -80,6 +81,9 @@ func LegacyWithLayout(genes []Gene, paddingBp int, err error) (any, error) {
 				Name:     transcript.Name,
 				ID:       transcript.ID,
 				Typename: "Transcript",
+			}
+			if transcript.Canonical {
+				legacyTranscript.Tag = "MANE_Select"
 			}
 
 			legacyExons := make([]LegacyExon, 0, len(transcript.Exons))

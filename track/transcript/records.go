@@ -126,7 +126,11 @@ func ParseRecord(interval *parsers.Interval) (Record, error) {
 		}
 		key := kv[0]
 		value := strings.Trim(kv[1], `"`)
-		attrMap[key] = value
+		if existing, ok := attrMap[key]; ok {
+			attrMap[key] = existing + "," + value
+		} else {
+			attrMap[key] = value
+		}
 	}
 
 	return Record{

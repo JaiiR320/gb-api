@@ -117,7 +117,7 @@ func (p *Parser) GetString(maxLen int) (string, error) {
 // GetFixedLengthString reads a fixed-length string, excluding null bytes
 func (p *Parser) GetFixedLengthString(length int) (string, error) {
 	s := ""
-	for i := 0; i < length; i++ {
+	for range length {
 		c, err := p.GetUInt8()
 		if err != nil {
 			return s, err
@@ -132,7 +132,7 @@ func (p *Parser) GetFixedLengthString(length int) (string, error) {
 // GetFixedLengthTrimmedString reads a fixed-length string, excluding control characters and spaces
 func (p *Parser) GetFixedLengthTrimmedString(length int) (string, error) {
 	s := ""
-	for i := 0; i < length; i++ {
+	for range length {
 		c, err := p.GetUInt8()
 		if err != nil {
 			return s, err

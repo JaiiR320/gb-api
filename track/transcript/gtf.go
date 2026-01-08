@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 type GenomicRange struct {
@@ -27,7 +28,9 @@ type Gene struct {
 
 type Transcript struct {
 	Feature
-	Exons []Exon `json:"exons"`
+	Exons     []Exon `json:"exons"`
+	Canonical bool   `json:"canonical,omitempty"`
+	Tags      string `json:"-"` // Raw tag string from GTF, not serialized
 }
 
 type Exon struct {
@@ -184,6 +187,18 @@ func buildTranscripts(geneRecords []Record, strand string) ([]Transcript, error)
 		}
 		transcriptRecord := transcriptFeatureRecords[0]
 
+		// Check if this transcript is canonical (has MANE_Select tag)
+		canonical := false
+		tagStr := transcriptRecord.Attributes["tag"]
+		if tagStr != "" {
+			for _, tag := range strings.Split(tagStr, ",") {
+				if tag == "MANE_Select" {
+					canonical = true
+					break
+				}
+			}
+		}
+
 		// Create Transcript object
 		transcriptObj := Transcript{
 			Feature: Feature{
@@ -195,6 +210,8 @@ func buildTranscripts(geneRecords []Record, strand string) ([]Transcript, error)
 					End:   transcriptRecord.End,
 				},
 			},
+			Canonical: canonical,
+			Tags:      tagStr,
 		}
 
 		// Extract start and stop codons for this transcript
