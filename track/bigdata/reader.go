@@ -7,10 +7,12 @@ import (
 // Decoder function signature
 type DataDecoder[T any] func(b *BigData, data []byte, startChromIdx, startBase, endChromIdx, endBase int32) ([]T, error)
 
-func ReadData[T any](
+// ReadDataWithZoom reads data from either full resolution or a zoom level
+func ReadDataWithZoom[T any](
 	b *BigData,
 	chrom string, start int32, end int32,
 	decoder DataDecoder[T],
+	zoomLevelIndex int, // -1 for full resolution, >=0 for zoom level
 ) ([]T, error) {
 	startChromIndex, ok := b.ChromTree.ChromToID[chrom]
 	if !ok {
@@ -18,8 +20,16 @@ func ReadData[T any](
 	}
 	endChromIndex := startChromIndex // same chrom
 
-	// Load leaf nodes from R+ tree
-	treeOffset := b.Header.FullIndexOffset
+	// Determine which R+ tree to use
+	var treeOffset uint64
+	if zoomLevelIndex >= 0 && zoomLevelIndex < len(b.ZoomLevels) {
+		// Use zoom level's R+ tree
+		treeOffset = b.ZoomLevels[zoomLevelIndex].IndexOffset
+	} else {
+		// Use full resolution R+ tree
+		treeOffset = b.Header.FullIndexOffset
+	}
+
 	rootNodeOffset := treeOffset + RPTREE_HEADER_SIZE
 	leafNodes, err := LoadLeafNodesForRPNode(b.URL, b.ByteOrder, rootNodeOffset, startChromIndex, start, endChromIndex, end)
 	if err != nil {
@@ -49,4 +59,13 @@ func ReadData[T any](
 	}
 
 	return allData, nil
+}
+
+// ReadData is maintained for backward compatibility
+func ReadData[T any](
+	b *BigData,
+	chrom string, start int32, end int32,
+	decoder DataDecoder[T],
+) ([]T, error) {
+	return ReadDataWithZoom(b, chrom, start, end, decoder, -1)
 }

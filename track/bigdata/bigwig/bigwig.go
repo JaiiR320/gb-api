@@ -23,13 +23,24 @@ type BigWigData struct {
 }
 
 // simple implementation, no caching
-func ReadBigWig(url string, chr string, start int, end int) ([]BigWigData, error) {
+func ReadBigWig(url string, chr string, start int, end int, preRenderedWidth int) ([]BigWigData, error) {
 	bw, err := bigdata.New(url, BIGWIG_MAGIC_LTH, BIGWIG_MAGIC_HTL)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := bigdata.ReadData(bw, chr, int32(start), int32(end), decodeWigData)
+	// Select optimal zoom level
+	zoomIdx := bw.SelectZoomLevel(start, end, preRenderedWidth)
+
+	// Select appropriate decoder
+	var decoder bigdata.DataDecoder[BigWigData]
+	if zoomIdx >= 0 {
+		decoder = decodeZoomData
+	} else {
+		decoder = decodeWigData
+	}
+
+	data, err := bigdata.ReadDataWithZoom(bw, chr, int32(start), int32(end), decoder, zoomIdx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read BigWig data, %w", err)
 	}
