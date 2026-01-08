@@ -11,6 +11,7 @@ func addRoutes(m *http.ServeMux) {
 	m.HandleFunc("/bigbed", api.CORSMiddleware(api.BigBedHandler))
 	m.HandleFunc("/transcript", api.CORSMiddleware(api.TranscriptHandler))
 	m.HandleFunc("/browser", api.CORSMiddleware(api.BrowserHandler))
+	m.HandleFunc("/admin/cache-status", api.CacheSizeHandler)
 }
 
 func main() {

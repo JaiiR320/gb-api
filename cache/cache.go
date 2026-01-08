@@ -38,3 +38,9 @@ func (c *Cache[T]) Get(key string) (val T, hit bool) {
 func (c *Cache[T]) Len() (length int) {
 	return c.Cache.Len()
 }
+
+func (c *Cache[T]) Keys() []string {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	return c.Cache.Keys()
+}
