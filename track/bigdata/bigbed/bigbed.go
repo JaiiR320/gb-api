@@ -2,13 +2,12 @@ package bigbed
 
 import (
 	"fmt"
-	"gb-api/cache"
 	"gb-api/track/bigdata"
 )
 
 const (
 	BIGBED_MAGIC_LTH = 0x8789F2EB // BigBed Magic Low to High
-	BIGBED_MAGIC_HTL = 0xEBF28987 // BigBed Magic High to Low       = 0x2468ACE0
+	BIGBED_MAGIC_HTL = 0xEBF28987 // BigBed Magic High to Low
 )
 
 type BigBed struct {
@@ -23,37 +22,15 @@ type BigBedData struct {
 	Rest  string `json:"rest,omitempty"`
 }
 
-var BigBedHeaderCache *cache.Cache[*bigdata.BigData]
-
-func init() {
-	cache, err := cache.NewCache[*bigdata.BigData](25)
-	if err != nil {
-		panic(err)
-	}
-	BigBedHeaderCache = cache
-}
-
-func getBigBed(url string) (*bigdata.BigData, error) {
-	if cached, ok := BigBedHeaderCache.Get(url); ok {
-		return cached, nil
-	}
-	bw, err := bigdata.New(url, BIGBED_MAGIC_LTH, BIGBED_MAGIC_HTL)
-	if err != nil {
-		return nil, err
-	}
-
-	BigBedHeaderCache.Add(url, bw)
-	return bw, nil
-}
-
+// ReadBigBed reads data without caching (use GetCachedBedData for cached reads)
 func ReadBigBed(url string, chr string, start int, end int) ([]BigBedData, error) {
-	bb, err := getBigBed(url)
+	bb, err := bigdata.New(url, BIGBED_MAGIC_LTH, BIGBED_MAGIC_HTL)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create bigbed, %w", err)
 	}
 	data, err := bigdata.ReadData(bb, chr, int32(start), int32(end), decodeBedData)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read BigWig data, %w", err)
+		return nil, fmt.Errorf("Failed to read BigBed data, %w", err)
 	}
 	return data, nil
 }

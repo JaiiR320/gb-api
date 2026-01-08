@@ -18,7 +18,7 @@ type BigBedRequest struct {
 	Chrom string `json:"chrom"`
 	Start int    `json:"start"`
 	End   int    `json:"end"`
-	Type  string `json:"type"` // "ccre", "generic"
+	Type  string `json:"type,omitempty"` // "ccre", "generic" | used for parsing non-universal columns
 }
 
 type TranscriptRequest struct {
