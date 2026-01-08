@@ -31,45 +31,83 @@ func ResampleToWidth(data []BigWigData, targetWidth int) []PrerenderedBin {
 	// Calculate bin size in genomic coordinates
 	binSize := totalRange / float64(targetWidth)
 
+	// Initialize result bins - use pointers to track if bin has data
+	type binData struct {
+		hasData bool
+		max     float32
+		min     float32
+	}
+	bins := make([]binData, targetWidth)
+
+	// Single pass through data points - O(n) instead of O(n×m)
+	for _, point := range data {
+		// Calculate which bins this point overlaps with
+		// Find first bin that this point touches
+		firstBin := int(float64(point.Start-start) / binSize)
+		if firstBin < 0 {
+			firstBin = 0
+		}
+		if firstBin >= targetWidth {
+			firstBin = targetWidth - 1
+		}
+
+		// Find last bin that this point touches
+		lastBin := int(float64(point.End-start) / binSize)
+		if lastBin < 0 {
+			lastBin = 0
+		}
+		if lastBin >= targetWidth {
+			lastBin = targetWidth - 1
+		}
+
+		// Update all bins that this point overlaps
+		for binIdx := firstBin; binIdx <= lastBin; binIdx++ {
+			if !bins[binIdx].hasData {
+				bins[binIdx].hasData = true
+				bins[binIdx].max = point.Value
+				bins[binIdx].min = point.Value
+			} else {
+				if point.Value > bins[binIdx].max {
+					bins[binIdx].max = point.Value
+				}
+				if point.Value < bins[binIdx].min {
+					bins[binIdx].min = point.Value
+				}
+			}
+		}
+	}
+
+	// Build result, filling gaps with nearest neighbor values
 	result := make([]PrerenderedBin, targetWidth)
+	var lastValidValue float32
+	hasLastValid := false
 
-	for i := 0; i < targetWidth; i++ {
-		binStart := start + int32(float64(i)*binSize)
-		binEnd := start + int32(float64(i+1)*binSize)
-
-		// Find all data points that overlap with this bin
-		var values []float32
-		for _, point := range data {
-			// Check if point overlaps with bin
-			if point.End > binStart && point.Start < binEnd {
-				values = append(values, point.Value)
+	for i := range targetWidth {
+		if bins[i].hasData {
+			result[i] = PrerenderedBin{
+				X:   i,
+				Max: bins[i].max,
+				Min: bins[i].min,
 			}
-		}
-
-		// Calculate max and min for this bin
-		var maxVal, minVal float32
-		if len(values) > 0 {
-			maxVal = values[0]
-			minVal = values[0]
-			for _, v := range values {
-				if v > maxVal {
-					maxVal = v
-				}
-				if v < minVal {
-					minVal = v
-				}
-			}
+			lastValidValue = bins[i].max // Use max as representative value
+			hasLastValid = true
 		} else {
-			// If no values in bin, use nearest value for both max and min
-			nearestVal := findNearestValue(data, binStart, binEnd)
-			maxVal = nearestVal
-			minVal = nearestVal
-		}
-
-		result[i] = PrerenderedBin{
-			X:   i,
-			Max: maxVal,
-			Min: minVal,
+			// Use last valid value, or find next valid value if no previous exists
+			fillValue := lastValidValue
+			if !hasLastValid {
+				// Look forward to find first valid bin
+				for j := i + 1; j < targetWidth; j++ {
+					if bins[j].hasData {
+						fillValue = bins[j].max
+						break
+					}
+				}
+			}
+			result[i] = PrerenderedBin{
+				X:   i,
+				Max: fillValue,
+				Min: fillValue,
+			}
 		}
 	}
 
