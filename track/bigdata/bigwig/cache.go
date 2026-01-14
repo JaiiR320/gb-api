@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gb-api/cache"
 	"gb-api/track/bigdata"
+	"log/slog"
 	"sort"
 	"sync"
 )
@@ -56,8 +57,7 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 		cacheId = fmt.Sprintf("%s-%s", url, chrom)
 	}
 
-	fmt.Printf("[Cache] Request: url=%s, chrom=%s, start=%d, end=%d, zoomIdx=%d\n",
-		url, chrom, start, end, zoomIdx)
+	slog.Debug("Cache request", "url", url, "chrom", chrom, "start", start, "end", end, "zoomIdx", zoomIdx)
 
 	// ranges start out as original request
 	rangesToFetch := []cache.Range{{Start: start, End: end}}
@@ -65,11 +65,11 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 	// generate new ranges on cache hit
 	cachedData, hit := BigWigDataCache.Get(cacheId)
 	if hit {
-		fmt.Printf("[Cache] HIT! Found %d cached ranges for zoom level %d\n", len(cachedData), zoomIdx)
+		slog.Debug("Cache hit", "cachedRanges", len(cachedData), "zoomIdx", zoomIdx)
 		rangesToFetch = cache.FindRanges(start, end, cachedData)
-		fmt.Printf("[Cache] Need to fetch %d ranges: %v\n", len(rangesToFetch), rangesToFetch)
+		slog.Debug("Ranges to fetch", "count", len(rangesToFetch), "ranges", rangesToFetch)
 	} else {
-		fmt.Printf("[Cache] MISS! Need to fetch entire range\n")
+		slog.Debug("Cache miss", "fetchingEntireRange", true)
 	}
 
 	// Select appropriate decoder
