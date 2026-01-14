@@ -14,7 +14,7 @@ func BigWigHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling bigwig request")
-	TrackHandler(w, r, l, func(req BigWigRequest) (any, error) {
+	TrackHandler(w, r, l, uuid, func(req BigWigRequest) (any, error) {
 		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End, "preRenderedWidth", req.PreRenderedWidth)
 		data, err := bigwig.GetCachedWigData(req.URL, req.Chrom, req.Start, req.End, req.PreRenderedWidth)
 		if err != nil {
@@ -34,7 +34,7 @@ func BigBedHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling bigbed request")
-	TrackHandler(w, r, l, func(req BigBedRequest) (any, error) {
+	TrackHandler(w, r, l, uuid, func(req BigBedRequest) (any, error) {
 		l.Info("Reading bigbed", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End)
 		data, err := bigbed.GetCachedBedData(req.URL, req.Chrom, req.Start, req.End)
 		if err != nil {
@@ -55,7 +55,7 @@ func TranscriptHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling transcript request")
-	TrackHandler(w, r, l, func(req TranscriptRequest) (any, error) {
+	TrackHandler(w, r, l, uuid, func(req TranscriptRequest) (any, error) {
 		l.Info("Getting transcripts", "chrom", req.Chrom, "start", req.Start, "end", req.End)
 		data, err := transcript.GetTranscripts(req.Chrom, req.Start, req.End)
 
@@ -106,6 +106,7 @@ func BrowserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", uuid)
 	if _, err := w.Write(responseBytes); err != nil {
 		logger.Error("Failed to write response", "error", err)
 	}

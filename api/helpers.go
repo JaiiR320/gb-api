@@ -21,7 +21,7 @@ func UUID() string {
 }
 
 // Wrapper function for making new track-specific handlers
-func TrackHandler[Req any, Data any](w http.ResponseWriter, r *http.Request, l *slog.Logger, fetch func(req Req) (Data, error)) {
+func TrackHandler[Req any, Data any](w http.ResponseWriter, r *http.Request, l *slog.Logger, requestID string, fetch func(req Req) (Data, error)) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		l.Error("Method not allowed", "method", r.Method)
@@ -53,6 +53,7 @@ func TrackHandler[Req any, Data any](w http.ResponseWriter, r *http.Request, l *
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID)
 	if _, err = w.Write(responseBytes); err != nil {
 		l.Error("Failed to write response", "error", err)
 	}
