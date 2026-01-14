@@ -14,8 +14,8 @@ import (
 
 // Rate limiter configuration (loaded from env vars)
 var (
-	rateLimitRPS   float64 = 1.67 // ~100 requests per minute
-	rateLimitBurst int     = 10   // Allow short bursts
+	rateLimitRPS   float64 = 15 // ~900 requests per minute
+	rateLimitBurst int     = 40 // Allow short bursts
 )
 
 // Client rate limiters stored by IP
