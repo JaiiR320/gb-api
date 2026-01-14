@@ -14,14 +14,18 @@ const MESSAGES = [
   "At your service!",
 ];
 
-function getRandomMessage(): string {
-  return MESSAGES[Math.floor(Math.random() * MESSAGES.length)] as string;
+const SOUNDS = [
+  "/usr/share/sounds/custom/a.mp3",
+  "/usr/share/sounds/custom/b.mp3",
+];
+
+function getRandomItem<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)] as T;
 }
 
 export const Notify: Plugin = async ({ $ }) => {
   const COOLDOWN_MS = 5000; // Only allow one notification per 5 seconds
   const ICON = "~/Pictures/icons/opencode.png";
-  const SOUND = "/usr/share/sounds/freedesktop/stereo/complete.oga";
 
   return {
     async event(input) {
@@ -34,11 +38,12 @@ export const Notify: Plugin = async ({ $ }) => {
           globalState.__opencode_notify_last = now;
           // Small delay to let duplicate events pass
           setTimeout(async () => {
-            const message = getRandomMessage();
+            const message = getRandomItem(MESSAGES);
+            const sound = getRandomItem(SOUNDS);
 
             await Promise.all([
               $`notify-send -i ${ICON} "OpenCode" "${message}"`,
-              $`paplay --volume=32768 ${SOUND}`,
+              $`paplay --volume=45000 ${sound}`,
             ]);
           }, 500);
         }
