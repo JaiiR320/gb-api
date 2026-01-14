@@ -16,16 +16,19 @@ import (
 var cfg *config.Config
 
 func addRoutes(m *http.ServeMux) {
-	// Health check endpoint for load balancers and orchestration
+	// Health check endpoint for load balancers and orchestration (unversioned)
 	m.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	m.HandleFunc("/bigwig", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigWigHandler)))
-	m.HandleFunc("/bigbed", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigBedHandler)))
-	m.HandleFunc("/transcript", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.TranscriptHandler)))
-	m.HandleFunc("/browser", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BrowserHandler)))
+	// API v1 endpoints
+	m.HandleFunc("/v1/bigwig", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigWigHandler)))
+	m.HandleFunc("/v1/bigbed", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigBedHandler)))
+	m.HandleFunc("/v1/transcript", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.TranscriptHandler)))
+	m.HandleFunc("/v1/browser", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BrowserHandler)))
+
+	// Admin endpoints (unversioned)
 	m.HandleFunc("/admin/cache-status", api.CacheSizeHandler)
 }
 

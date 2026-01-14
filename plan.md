@@ -29,10 +29,10 @@ This document tracks API improvements to bring gb-api from prototype to producti
 - [x] 4.1 Environment-based config (port, cache size)
 - [x] 4.2 Add security headers (X-Content-Type-Options, etc.)
 
-## Segment 5: Documentation & Versioning
+## Segment 5: Documentation & Versioning (Complete)
 
-- [ ] 5.1 Add OpenAPI/Swagger spec
-- [ ] 5.2 Add API versioning (/v1/ prefix)
+- [x] ~~5.1 Add OpenAPI/Swagger spec~~ (skipped)
+- [x] 5.2 Add API versioning (/v1/ prefix)
 
 ## Segment 6: Future Enhancements
 
