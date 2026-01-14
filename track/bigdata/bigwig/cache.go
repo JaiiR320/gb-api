@@ -89,7 +89,7 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 	for _, r := range rangesToFetch {
 		go func(r cache.Range) {
 			defer wg.Done()
-			fmt.Printf("[Cache] Goroutine fetching: start=%d, end=%d, zoom=%d\n", r.Start, r.End, zoomIdx)
+			slog.Debug("Goroutine fetching", "start", r.Start, "end", r.End, "zoomIdx", zoomIdx)
 
 			data, err := bigdata.ReadDataWithZoom(bw, chrom, int32(r.Start), int32(r.End),
 				decoder, zoomIdx)
@@ -115,7 +115,7 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 		rangeData = append(rangeData, dc)
 	}
 
-	fmt.Printf("[Cache] Collected %d total ranges\n", len(rangeData))
+	slog.Debug("Collected ranges", "total", len(rangeData))
 
 	sort.Slice(rangeData, func(i, j int) bool {
 		return rangeData[i].Start < rangeData[j].Start
@@ -123,7 +123,7 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 
 	// Merge overlapping/adjacent ranges
 	rangeData = cache.MergeRanges(rangeData)
-	fmt.Printf("[Cache] After merging: %d ranges\n", len(rangeData))
+	slog.Debug("After merging", "ranges", len(rangeData))
 
 	BigWigDataCache.Add(cacheId, rangeData)
 
@@ -142,7 +142,7 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 			}
 		}
 	}
-	fmt.Printf("[Cache] Returning %d data points\n", len(data))
+	slog.Debug("Returning data points", "count", len(data))
 
 	return data, erra
 }
