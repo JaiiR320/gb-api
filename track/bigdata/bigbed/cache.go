@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gb-api/cache"
 	"gb-api/track/bigdata"
+	"log/slog"
 	"sort"
 	"sync"
 )
@@ -40,7 +41,7 @@ func getCachedHeader(url string) (*bigdata.BigData, error) {
 }
 
 func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, error) {
-	fmt.Printf("[Cache] Request: url=%s, chrom=%s, start=%d, end=%d\n", url, chrom, start, end)
+	slog.Debug("Cache request", "url", url, "chrom", chrom, "start", start, "end", end)
 	cacheId := url + "-" + chrom
 	// ranges start out as original request
 	rangesToFetch := []cache.Range{{Start: start, End: end}}
@@ -48,11 +49,11 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 	// generate new ranges on cache hit
 	cachedData, hit := BigBedDataCache.Get(cacheId)
 	if hit {
-		fmt.Printf("[Cache] HIT! Found %d cached ranges\n", len(cachedData))
+		slog.Debug("Cache hit", "cachedRanges", len(cachedData))
 		rangesToFetch = cache.FindRanges(start, end, cachedData)
-		fmt.Printf("[Cache] Need to fetch %d ranges: %v\n", len(rangesToFetch), rangesToFetch)
+		slog.Debug("Ranges to fetch", "count", len(rangesToFetch), "ranges", rangesToFetch)
 	} else {
-		fmt.Printf("[Cache] MISS! Need to fetch entire range\n")
+		slog.Debug("Cache miss", "fetchingEntireRange", true)
 	}
 
 	// stupid race condition temporary solution
@@ -71,7 +72,7 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 	for _, r := range rangesToFetch {
 		go func(r cache.Range) {
 			defer wg.Done()
-			fmt.Printf("[Cache] Goroutine fetching: start=%d, end=%d\n", r.Start, r.End)
+			slog.Debug("Goroutine fetching", "start", r.Start, "end", r.End)
 			data, err := bigdata.ReadData(bb, chrom, int32(r.Start), int32(r.End), decodeBedData)
 			if err != nil {
 				erra = err
@@ -92,7 +93,7 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 	for dc := range dchan {
 		rangeData = append(rangeData, dc)
 	}
-	fmt.Printf("[Cache] Collected %d total ranges (cached + fetched)\n", len(rangeData))
+	slog.Debug("Collected ranges", "total", len(rangeData))
 
 	sort.Slice(rangeData, func(i, j int) bool {
 		return rangeData[i].Start < rangeData[j].Start
@@ -100,7 +101,7 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 
 	// Merge overlapping/adjacent ranges
 	rangeData = cache.MergeRanges(rangeData)
-	fmt.Printf("[Cache] After merging: %d ranges\n", len(rangeData))
+	slog.Debug("After merging", "ranges", len(rangeData))
 
 	BigBedDataCache.Add(cacheId, rangeData)
 
@@ -119,7 +120,7 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 			}
 		}
 	}
-	fmt.Printf("[Cache] Returning %d data points (filtered from %d to %d)\n", len(data), start, end)
+	slog.Debug("Returning data points", "count", len(data), "start", start, "end", end)
 
 	return data, erra
 }
