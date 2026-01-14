@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"gb-api/api"
 	"gb-api/api/middleware"
+	"log/slog"
 	"net/http"
 )
 
@@ -25,9 +25,9 @@ func main() {
 	mux := http.NewServeMux()
 
 	addRoutes(mux)
-	fmt.Println("Server running on port 8080")
+	slog.Info("Server starting", "port", 8080)
 
 	if err := http.ListenAndServe(":8080", mux); err != nil {
-		fmt.Println("Failed to start server:", err)
+		slog.Error("Failed to start server", "error", err)
 	}
 }
