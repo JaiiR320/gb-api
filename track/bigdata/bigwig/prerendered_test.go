@@ -39,9 +39,10 @@ func TestResampleToWidth_SingleBin(t *testing.T) {
 
 func TestResampleToWidth_MultipleBins(t *testing.T) {
 	// Range: 0-100, split into 2 bins
+	// Bin 0 covers [0, 50), Bin 1 covers [50, 100]
 	data := []BigWigData{
 		{Chr: "chr1", Start: 0, End: 25, Value: 10.0},
-		{Chr: "chr1", Start: 25, End: 50, Value: 20.0},
+		{Chr: "chr1", Start: 25, End: 50, Value: 20.0}, // End=50 touches bin 1 boundary
 		{Chr: "chr1", Start: 50, End: 75, Value: 5.0},
 		{Chr: "chr1", Start: 75, End: 100, Value: 15.0},
 	}
@@ -52,7 +53,7 @@ func TestResampleToWidth_MultipleBins(t *testing.T) {
 		t.Fatalf("Expected 2 bins, got %d", len(result))
 	}
 
-	// Bin 0: 0-50, should contain values 10.0 and 20.0
+	// Bin 0: 0-50, contains values 10.0 and 20.0
 	if result[0].X != 0 {
 		t.Errorf("Bin 0: Expected x=0, got x=%d", result[0].X)
 	}
@@ -63,12 +64,13 @@ func TestResampleToWidth_MultipleBins(t *testing.T) {
 		t.Errorf("Bin 0: Expected min=10.0, got min=%f", result[0].Min)
 	}
 
-	// Bin 1: 50-100, should contain values 5.0 and 15.0
+	// Bin 1: 50-100, contains values 5.0, 15.0, AND 20.0 (because point 25-50 touches boundary)
+	// The point ending at 50 spans into bin 1, so max is 20.0
 	if result[1].X != 1 {
 		t.Errorf("Bin 1: Expected x=1, got x=%d", result[1].X)
 	}
-	if result[1].Max != 15.0 {
-		t.Errorf("Bin 1: Expected max=15.0, got max=%f", result[1].Max)
+	if result[1].Max != 20.0 {
+		t.Errorf("Bin 1: Expected max=20.0, got max=%f", result[1].Max)
 	}
 	if result[1].Min != 5.0 {
 		t.Errorf("Bin 1: Expected min=5.0, got min=%f", result[1].Min)
