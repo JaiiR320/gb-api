@@ -15,7 +15,7 @@ const MESSAGES = [
 ];
 
 function getRandomMessage(): string {
-  return MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+  return MESSAGES[Math.floor(Math.random() * MESSAGES.length)] as string;
 }
 
 export const Notify: Plugin = async ({ $ }) => {
