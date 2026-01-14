@@ -18,11 +18,11 @@ This document tracks API improvements to bring gb-api from prototype to producti
 - [x] 2.2 Add input validation (start/end, chrom, URL)
 - [x] 2.3 Add rate limit headers (X-RateLimit-*)
 
-## Segment 3: Reliability
+## Segment 3: Reliability (Complete)
 
-- [ ] 3.1 Add request timeouts with context propagation
-- [ ] 3.2 Implement graceful shutdown (SIGTERM/SIGINT)
-- [ ] 3.3 Add request body size limits
+- [x] 3.1 Add request timeouts with context propagation
+- [x] 3.2 Implement graceful shutdown (SIGTERM/SIGINT)
+- [x] 3.3 Add request body size limits
 
 ## Segment 4: Configuration
 
