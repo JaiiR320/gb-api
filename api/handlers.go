@@ -14,7 +14,7 @@ func BigWigHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling bigwig request")
-	TrackHandler(w, r, l, uuid, func(req BigWigRequest) (any, error) {
+	TrackHandler(w, r, l, uuid, func(req *BigWigRequest) (any, error) {
 		l.Info("Reading bigwig", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End, "preRenderedWidth", req.PreRenderedWidth)
 		data, err := bigwig.GetCachedWigData(req.URL, req.Chrom, req.Start, req.End, req.PreRenderedWidth)
 		if err != nil {
@@ -34,7 +34,7 @@ func BigBedHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling bigbed request")
-	TrackHandler(w, r, l, uuid, func(req BigBedRequest) (any, error) {
+	TrackHandler(w, r, l, uuid, func(req *BigBedRequest) (any, error) {
 		l.Info("Reading bigbed", "url", req.URL, "chrom", req.Chrom, "start", req.Start, "end", req.End)
 		data, err := bigbed.GetCachedBedData(req.URL, req.Chrom, req.Start, req.End)
 		if err != nil {
@@ -55,7 +55,7 @@ func TranscriptHandler(w http.ResponseWriter, r *http.Request) {
 	uuid := UUID()
 	l := slog.With("ID", uuid)
 	l.Info("Handling transcript request")
-	TrackHandler(w, r, l, uuid, func(req TranscriptRequest) (any, error) {
+	TrackHandler(w, r, l, uuid, func(req *TranscriptRequest) (any, error) {
 		l.Info("Getting transcripts", "chrom", req.Chrom, "start", req.Start, "end", req.End)
 		data, err := transcript.GetTranscripts(req.Chrom, req.Start, req.End)
 
@@ -71,7 +71,8 @@ func BrowserHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Handling browser request")
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		WriteJSONError(w, uuid, http.StatusMethodNotAllowed,
+			NewAPIError(ErrCodeMethodNotAllowed, "Method not allowed"))
 		logger.Error("Method not allowed", "method", r.Method)
 		return
 	}
@@ -79,8 +80,16 @@ func BrowserHandler(w http.ResponseWriter, r *http.Request) {
 	var request BrowserRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		http.Error(w, "Failed to decode request", http.StatusBadRequest)
+		WriteJSONError(w, uuid, http.StatusBadRequest,
+			APIError{Code: ErrCodeInvalidJSON, Message: "Failed to decode request", Details: err.Error()})
 		logger.Error("Failed to decode request", "error", err)
+		return
+	}
+
+	// Validate the request
+	if validationErr := request.Validate(); validationErr != nil {
+		WriteJSONError(w, uuid, http.StatusBadRequest, *validationErr)
+		logger.Error("Validation failed", "field", validationErr.Field, "message", validationErr.Message)
 		return
 	}
 
@@ -100,7 +109,8 @@ func BrowserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	responseBytes, err := json.Marshal(response)
 	if err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		WriteJSONError(w, uuid, http.StatusInternalServerError,
+			NewAPIError(ErrCodeInternalError, "Failed to encode response"))
 		logger.Error("Failed to encode response", "error", err)
 		return
 	}

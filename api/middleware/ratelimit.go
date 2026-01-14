@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"encoding/json"
 	"log/slog"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -108,10 +110,26 @@ func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		ip := getClientIP(r)
 		limiter := getLimiter(ip)
 
+		// Set rate limit headers on all responses
+		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(int(rateLimitRPS*60))) // requests per minute
+		w.Header().Set("X-RateLimit-Burst", strconv.Itoa(rateLimitBurst))
+
+		// Calculate remaining tokens (approximate)
+		tokens := limiter.Tokens()
+		remaining := int(math.Max(0, tokens))
+		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(remaining))
+
 		if !limiter.Allow() {
 			slog.Warn("Rate limit exceeded", "ip", ip)
 			w.Header().Set("Retry-After", "60")
-			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]string{
+					"code":    "RATE_LIMIT_EXCEEDED",
+					"message": "Rate limit exceeded. Please retry after 60 seconds.",
+				},
+			})
 			return
 		}
 

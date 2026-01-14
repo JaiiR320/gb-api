@@ -12,11 +12,11 @@ This document tracks API improvements to bring gb-api from prototype to producti
 - [x] 1.3 Remove hardcoded `X-Cache-Status` header
 - [x] 1.4 Add `X-Request-ID` response header
 
-## Segment 2: Error Handling
+## Segment 2: Error Handling (Complete)
 
-- [ ] 2.1 Create standardized error response struct
-- [ ] 2.2 Add input validation (start/end, chrom, URL)
-- [ ] 2.3 Add rate limit headers (X-RateLimit-*)
+- [x] 2.1 Create standardized error response struct
+- [x] 2.2 Add input validation (start/end, chrom, URL)
+- [x] 2.3 Add rate limit headers (X-RateLimit-*)
 
 ## Segment 3: Reliability
 
