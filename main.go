@@ -15,6 +15,9 @@ import (
 // Global config loaded at startup
 var cfg *config.Config
 
+// API version prefix - change this to bump all endpoints
+const apiVersion = "/v1"
+
 func addRoutes(m *http.ServeMux) {
 	// Health check endpoint for load balancers and orchestration (unversioned)
 	m.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -22,11 +25,11 @@ func addRoutes(m *http.ServeMux) {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// API v1 endpoints
-	m.HandleFunc("/v1/bigwig", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigWigHandler)))
-	m.HandleFunc("/v1/bigbed", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigBedHandler)))
-	m.HandleFunc("/v1/transcript", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.TranscriptHandler)))
-	m.HandleFunc("/v1/browser", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BrowserHandler)))
+	// API endpoints
+	m.HandleFunc(apiVersion+"/bigwig", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigWigHandler)))
+	m.HandleFunc(apiVersion+"/bigbed", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigBedHandler)))
+	m.HandleFunc(apiVersion+"/transcript", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.TranscriptHandler)))
+	m.HandleFunc(apiVersion+"/browser", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BrowserHandler)))
 
 	// Admin endpoints (unversioned)
 	m.HandleFunc("/admin/cache-status", api.CacheSizeHandler)
