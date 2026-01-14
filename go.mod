@@ -12,4 +12,5 @@ require (
 	github.com/biogo/hts v1.4.5 // indirect
 	github.com/brentp/vcfgo v0.0.0-20250902214554-a31336cef488 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	golang.org/x/time v0.14.0 // indirect
 )
