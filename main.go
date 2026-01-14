@@ -3,14 +3,21 @@ package main
 import (
 	"fmt"
 	"gb-api/api"
+	"gb-api/api/middleware"
 	"net/http"
 )
 
 func addRoutes(m *http.ServeMux) {
-	m.HandleFunc("/bigwig", api.CORSMiddleware(api.BigWigHandler))
-	m.HandleFunc("/bigbed", api.CORSMiddleware(api.BigBedHandler))
-	m.HandleFunc("/transcript", api.CORSMiddleware(api.TranscriptHandler))
-	m.HandleFunc("/browser", api.CORSMiddleware(api.BrowserHandler))
+	// Health check endpoint for load balancers and orchestration
+	m.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	m.HandleFunc("/bigwig", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigWigHandler)))
+	m.HandleFunc("/bigbed", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BigBedHandler)))
+	m.HandleFunc("/transcript", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.TranscriptHandler)))
+	m.HandleFunc("/browser", middleware.CORSMiddleware(middleware.RateLimitMiddleware(api.BrowserHandler)))
 	m.HandleFunc("/admin/cache-status", api.CacheSizeHandler)
 }
 
