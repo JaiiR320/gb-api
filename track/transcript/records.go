@@ -145,19 +145,3 @@ func ParseRecord(interval *parsers.Interval) (Record, error) {
 		Attributes: attrMap,
 	}, nil
 }
-
-func PrintRecord(record Record) {
-	fmt.Printf("Chrom: %s\n", record.Chrom)
-	fmt.Printf("Source: %s\n", record.Source)
-	fmt.Printf("Feature: %s\n", record.Feature)
-	fmt.Printf("Start: %d\n", record.Start)
-	fmt.Printf("End: %d\n", record.End)
-	fmt.Printf("Score: %s\n", record.Score)
-	fmt.Printf("Strand: %s\n", record.Strand)
-	fmt.Printf("Frame: %s\n", record.Frame)
-	fmt.Printf("Attributes:\n")
-	for key, value := range record.Attributes {
-		fmt.Printf("  %s: %s\n", key, value)
-	}
-
-}
