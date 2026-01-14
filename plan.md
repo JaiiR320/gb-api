@@ -2,15 +2,15 @@
 
 This document tracks API improvements to bring gb-api from prototype to production.
 
-## Segment 1: Quick Wins (Current)
+## Segment 1: Quick Wins (Complete)
 
-- [ ] 1.1 Add `/health` endpoint
-- [ ] 1.2a Replace debug prints in bigwig cache with slog
-- [ ] 1.2b Replace debug prints in bigbed cache with slog
-- [ ] 1.2c Delete unused `PrintRecord` function
-- [ ] 1.2d Replace main.go prints with slog
-- [ ] 1.3 Remove hardcoded `X-Cache-Status` header
-- [ ] 1.4 Add `X-Request-ID` response header
+- [x] 1.1 Add `/health` endpoint
+- [x] 1.2a Replace debug prints in bigwig cache with slog
+- [x] 1.2b Replace debug prints in bigbed cache with slog
+- [x] 1.2c Delete unused `PrintRecord` function
+- [x] 1.2d Replace main.go prints with slog
+- [x] 1.3 Remove hardcoded `X-Cache-Status` header
+- [x] 1.4 Add `X-Request-ID` response header
 
 ## Segment 2: Error Handling
 
