@@ -3,6 +3,7 @@ package bigwig
 import (
 	"fmt"
 	"gb-api/cache"
+	"gb-api/config"
 	"gb-api/track/bigdata"
 	"log/slog"
 	"sort"
@@ -14,13 +15,15 @@ var BigWigHeaderCache *cache.Cache[*bigdata.BigData]
 var BigWigDataCache *cache.RangeDataCache[BigWigData]
 
 func init() {
-	dataCache, err := cache.NewCache[[]cache.RangeData[BigWigData]](25)
+	cacheSize := config.GetCacheSize()
+
+	dataCache, err := cache.NewCache[[]cache.RangeData[BigWigData]](cacheSize)
 	if err != nil {
 		panic(err)
 	}
 	BigWigDataCache = dataCache
 
-	headerCache, err := cache.NewCache[*bigdata.BigData](25)
+	headerCache, err := cache.NewCache[*bigdata.BigData](cacheSize)
 	if err != nil {
 		panic(err)
 	}

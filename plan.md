@@ -24,10 +24,10 @@ This document tracks API improvements to bring gb-api from prototype to producti
 - [x] 3.2 Implement graceful shutdown (SIGTERM/SIGINT)
 - [x] 3.3 Add request body size limits
 
-## Segment 4: Configuration
+## Segment 4: Configuration (Complete)
 
-- [ ] 4.1 Environment-based config (port, cache size)
-- [ ] 4.2 Add security headers (X-Content-Type-Options, etc.)
+- [x] 4.1 Environment-based config (port, cache size)
+- [x] 4.2 Add security headers (X-Content-Type-Options, etc.)
 
 ## Segment 5: Documentation & Versioning
 

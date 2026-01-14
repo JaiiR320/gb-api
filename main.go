@@ -4,23 +4,16 @@ import (
 	"context"
 	"gb-api/api"
 	"gb-api/api/middleware"
+	"gb-api/config"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
-const (
-	// Server configuration
-	serverPort         = ":8080"
-	readTimeout        = 30 * time.Second
-	writeTimeout       = 60 * time.Second // Longer for large genomic responses
-	idleTimeout        = 120 * time.Second
-	maxRequestBodySize = 1 << 20 // 1 MB max request body
-	shutdownTimeout    = 30 * time.Second
-)
+// Global config loaded at startup
+var cfg *config.Config
 
 func addRoutes(m *http.ServeMux) {
 	// Health check endpoint for load balancers and orchestration
@@ -37,26 +30,33 @@ func addRoutes(m *http.ServeMux) {
 }
 
 // maxBytesMiddleware limits the size of request bodies
-func maxBytesMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
-		next.ServeHTTP(w, r)
-	})
+func maxBytesMiddleware(maxSize int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxSize)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func main() {
+	// Load configuration from environment
+	cfg = config.Load()
+
 	mux := http.NewServeMux()
 	addRoutes(mux)
 
-	// Wrap with request body size limit
-	handler := maxBytesMiddleware(mux)
+	// Chain middleware: security headers -> body size limit -> routes
+	handler := middleware.SecurityHeadersMiddleware(
+		maxBytesMiddleware(cfg.MaxRequestBody)(mux),
+	)
 
 	server := &http.Server{
-		Addr:         serverPort,
+		Addr:         cfg.Port,
 		Handler:      handler,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-		IdleTimeout:  idleTimeout,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
+		IdleTimeout:  cfg.IdleTimeout,
 	}
 
 	// Channel to listen for shutdown signals
@@ -65,7 +65,7 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		slog.Info("Server starting", "port", serverPort)
+		slog.Info("Server starting", "port", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server error", "error", err)
 			os.Exit(1)
@@ -77,7 +77,7 @@ func main() {
 	slog.Info("Shutdown signal received", "signal", sig)
 
 	// Create context with timeout for graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 
 	// Attempt graceful shutdown
