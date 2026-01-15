@@ -4,3 +4,6 @@ gb-api
 test/response/*.json
 track/transcript/data/*
 !track/transcript/data/v40/
+
+# btca resources cache
+.btca
