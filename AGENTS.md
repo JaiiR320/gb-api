@@ -154,3 +154,23 @@ See `cache/cache.go` and `api/helpers.go` for examples.
 - `github.com/hashicorp/golang-lru/v2` - LRU cache
 - `github.com/brentp/bix` - Tabix-indexed file access
 - `golang.org/x/time/rate` - Rate limiting
+
+## btca
+
+When you need up-to-date information about technologies used in this project, use btca to query source repositories directly.
+
+**Available resources**: go, bix, irelate, golangLru, hts
+
+### Usage
+
+```bash
+btca ask -r <resource> -q "<question>"
+```
+
+Use multiple `-r` flags to query multiple resources at once:
+
+```bash
+btca ask -r go -r bix -q "How does bix handle BigWig zoom level selection?"
+btca ask -r golangLru -q "What are best practices for LRU cache eviction policies?"
+btca ask -r hts -r bix -q "How to efficiently parse BAM files with interval queries?"
+```

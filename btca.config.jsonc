@@ -1,0 +1,44 @@
+{
+  "$schema": "https://btca.dev/btca.schema.json",
+  "resources": [
+    {
+      "type": "git",
+      "name": "go",
+      "url": "https://github.com/golang/go",
+      "branch": "master",
+      "searchPath": "src",
+      "specialNotes": "Go standard library source code. Focus on src directory for standard library implementations and patterns."
+    },
+    {
+      "type": "git",
+      "name": "bix",
+      "url": "https://github.com/brentp/bix",
+      "branch": "master",
+      "specialNotes": "Bioinformatics indexing library for BigWig, BigBed, and tabix-indexed files. Key for understanding genomic data format handling."
+    },
+    {
+      "type": "git",
+      "name": "irelate",
+      "url": "https://github.com/brentp/irelate",
+      "branch": "master",
+      "specialNotes": "Library for streaming relations (overlap, proximity) of genomic interval files. Useful for understanding interval operations."
+    },
+    {
+      "type": "git",
+      "name": "golangLru",
+      "url": "https://github.com/hashicorp/golang-lru",
+      "branch": "main",
+      "searchPath": "v2",
+      "specialNotes": "HashiCorp's LRU cache implementation. Focus on v2 directory for the version used in this project."
+    },
+    {
+      "type": "git",
+      "name": "hts",
+      "url": "https://github.com/biogo/hts",
+      "branch": "master",
+      "specialNotes": "Biogo high-throughput sequencing library. Provides handling for BAM, SAM, and other genomic formats."
+    }
+  ],
+  "model": "claude-haiku-4-5",
+  "provider": "opencode"
+}
