@@ -87,7 +87,7 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 	var wg sync.WaitGroup
 	wg.Add(len(rangesToFetch))
 
-	var erra error
+	errchan := make(chan error, 1)
 
 	for _, r := range rangesToFetch {
 		go func(r cache.Range) {
@@ -97,7 +97,10 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 			data, err := bigdata.ReadDataWithZoom(bw, chrom, int32(r.Start), int32(r.End),
 				decoder, zoomIdx)
 			if err != nil {
-				erra = err
+				select {
+				case errchan <- err:
+				default:
+				}
 				return
 			}
 
@@ -111,6 +114,12 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 
 	wg.Wait()
 	close(dchan)
+	close(errchan)
+
+	// Check for errors from goroutines
+	if err, ok := <-errchan; ok {
+		return nil, err
+	}
 
 	// Merge cached and newly fetched data
 	rangeData := cachedData
@@ -147,5 +156,5 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 	}
 	slog.Debug("Returning data points", "count", len(data))
 
-	return data, erra
+	return data, nil
 }

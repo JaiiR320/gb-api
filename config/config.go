@@ -33,8 +33,13 @@ var (
 
 // Load reads configuration from environment variables with defaults
 func Load() *Config {
+	port := getEnvOrDefault("PORT", DefaultPort)
+	// Fly.io sets PORT=8080, but Go's http.Server.Addr expects ":8080"
+	if port != "" && port[0] != ':' {
+		port = ":" + port
+	}
 	return &Config{
-		Port:            getEnvOrDefault("PORT", DefaultPort),
+		Port:            port,
 		ReadTimeout:     getDurationEnv("READ_TIMEOUT", DefaultReadTimeout),
 		WriteTimeout:    getDurationEnv("WRITE_TIMEOUT", DefaultWriteTimeout),
 		IdleTimeout:     getDurationEnv("IDLE_TIMEOUT", DefaultIdleTimeout),
