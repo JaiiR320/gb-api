@@ -1,8 +1,6 @@
-# Plan: Fix Race Condition in BigWig Cache
+# Performance Improvements Plan
 
-## Overview
-
-Fix the race condition in `track/bigdata/bigwig/cache.go` where multiple goroutines write to a shared `erra` variable without synchronization. Replace shared error variable with an error channel pattern.
+This document tracks performance optimization work for gb-api.
 
 ## Workflow
 
@@ -11,56 +9,88 @@ Fix the race condition in `track/bigdata/bigwig/cache.go` where multiple gorouti
 
 ---
 
-## Feature 1: Fix Race Condition in cache.go
+## Feature 1: Buffer Pooling for Decompression
 
-- [x] **Task 1.1**: Add error channel
-  - Create buffered error channel with capacity 1 (only need first error)
-  - `errchan := make(chan error, 1)`
+Reduce GC pressure by reusing buffers in the hot decompression path.
 
-- [x] **Task 1.2**: Replace shared error variable in goroutines
-  - Remove `var erra error`
-  - Use non-blocking send to capture first error only:
-    ```go
-    select {
-    case errchan <- err:
-    default:
-    }
-    ```
+- [x] **Feature complete**
 
-- [x] **Task 1.3**: Update error collection after wait
-  - Close error channel after `wg.Wait()`
-  - Check for error with `if err, ok := <-errchan; ok { return nil, err }`
-  - Remove `erra` from final return
+### Tasks
 
-**Commit suggestion**: `fix: resolve race condition in bigwig cache using error channel`
+- [x] Create `sync.Pool` for decompression buffers in `track/bigdata/decompress.go`
+  - Add package-level `var bufferPool = sync.Pool{...}` with 64KB default capacity
+  
+- [x] Modify `DecompressData()` function (`decompress.go:11-28`)
+  - Get buffer from pool at start
+  - Use `buf.Reset()` to clear
+  - `defer bufferPool.Put(buf)` to return
+  - Use `io.Copy(buf, reader)` instead of `io.ReadAll`
+  - Copy result out before returning (buffer will be reused)
 
----
+- [x] Add unit test for buffer pool behavior
+  - Verify decompression still works correctly
+  - Test concurrent decompression calls
 
-## Feature 2: Verify Changes
-
-- [ ] **Task 2.1**: Run tests for bigwig package
-  - `go test ./track/bigdata/bigwig/...`
-
-- [ ] **Task 2.2**: Run full test suite
-  - `go test ./...`
-
-- [ ] **Task 2.3**: Run race detector
-  - `go test -race ./track/bigdata/bigwig/...`
-
-**Commit suggestion**: None (verification only)
+**Commit suggestion:** `perf: add sync.Pool for decompression buffers`
 
 ---
 
-## Files Changed
+## Feature 2: Slice Pre-allocation
 
-| File | Change |
-|------|--------|
-| `track/bigdata/bigwig/cache.go` | Replace shared error variable with error channel |
+Eliminate repeated slice reallocations by pre-calculating capacity.
+
+- [ ] **Feature complete**
+
+### Tasks
+
+- [ ] Pre-allocate in `ReadDataWithZoom()` (`track/bigdata/reader.go:40`)
+  - Calculate total capacity from `leafNodes` before loop
+  - Use `make([]T, 0, estimatedCapacity)`
+
+- [ ] Pre-allocate in `GetCachedWigData()` (`track/bigdata/bigwig/cache.go:143`)
+  - Count total points across `rangeData` first
+  - Use `make([]BigWigData, 0, totalPoints)`
+
+- [ ] Pre-allocate in `GetCachedBedData()` (`track/bigdata/bigbed/cache.go:112`)
+  - Count total points across `rangeData` first
+  - Use `make([]BigBedData, 0, totalPoints)`
+
+- [ ] Pre-allocate in `BrowserHandler()` (`api/handlers.go:102-104`)
+  - Use `make([]TrackResponse, 0, len(request.Tracks))`
+
+**Commit suggestion:** `perf: pre-allocate slice capacity in hot paths`
 
 ---
 
-## Out of Scope
+## Feature 3: JSON Response Streaming
 
-- `track/bigdata/rtree.go` - Uses channel with struct, no race condition
-- Adding `context.Context` throughout - Not needed for this fix
-- Adding external dependencies - Using stdlib only
+Stream JSON directly to ResponseWriter instead of double-buffering.
+
+- [ ] **Feature complete**
+
+### Tasks
+
+- [ ] Modify `TrackHandler()` (`api/helpers.go:67-78`)
+  - Replace `json.Marshal()` + `w.Write()` with `json.NewEncoder(w).Encode()`
+  - Set headers before encoding
+  - Handle encoding errors (note: partial response may be sent)
+
+- [ ] Modify `BrowserHandler()` (`api/handlers.go:110-122`)
+  - Replace `json.Marshal()` + `w.Write()` with `json.NewEncoder(w).Encode()`
+  - Set headers before encoding
+
+- [ ] Update error handling approach
+  - Document that streaming means partial responses on encode failure
+  - Consider if this tradeoff is acceptable (it usually is)
+
+**Commit suggestion:** `perf: stream JSON responses directly to reduce memory`
+
+---
+
+## Summary
+
+| Feature | Files Modified | Impact |
+|---------|----------------|--------|
+| Buffer Pooling | `decompress.go` | High - reduces GC in hot path |
+| Slice Pre-alloc | `reader.go`, `bigwig/cache.go`, `bigbed/cache.go`, `handlers.go` | Medium - fewer allocations |
+| JSON Streaming | `helpers.go`, `handlers.go` | Medium - halves response memory |
