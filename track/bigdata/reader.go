@@ -37,7 +37,9 @@ func ReadDataWithZoom[T any](
 	}
 
 	// Iterate through leaf nodes and decode data
-	allData := []T{}
+	// Pre-allocate with estimated capacity (64 items per leaf is a reasonable estimate)
+	estimatedCapacity := len(leafNodes) * 64
+	allData := make([]T, 0, estimatedCapacity)
 	for _, leafNode := range leafNodes {
 
 		leafData, err := RequestBytes(b.URL, int(leafNode.DataOffset), int(leafNode.DataSize))

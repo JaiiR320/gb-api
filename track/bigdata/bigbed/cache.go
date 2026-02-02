@@ -117,7 +117,12 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 	BigBedDataCache.Add(cacheId, rangeData)
 
 	// Filter data to only include points within the requested range
-	var data []BigBedData
+	// Count total points for pre-allocation
+	totalPoints := 0
+	for _, r := range rangeData {
+		totalPoints += len(r.Data)
+	}
+	data := make([]BigBedData, 0, totalPoints)
 	for _, r := range rangeData {
 		// Only include data from ranges that overlap with the requested region
 		if r.End <= start || r.Start >= end {

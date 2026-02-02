@@ -39,23 +39,23 @@ Reduce GC pressure by reusing buffers in the hot decompression path.
 
 Eliminate repeated slice reallocations by pre-calculating capacity.
 
-- [ ] **Feature complete**
+- [x] **Feature complete**
 
 ### Tasks
 
-- [ ] Pre-allocate in `ReadDataWithZoom()` (`track/bigdata/reader.go:40`)
+- [x] Pre-allocate in `ReadDataWithZoom()` (`track/bigdata/reader.go:40`)
   - Calculate total capacity from `leafNodes` before loop
   - Use `make([]T, 0, estimatedCapacity)`
 
-- [ ] Pre-allocate in `GetCachedWigData()` (`track/bigdata/bigwig/cache.go:143`)
+- [x] Pre-allocate in `GetCachedWigData()` (`track/bigdata/bigwig/cache.go:143`)
   - Count total points across `rangeData` first
   - Use `make([]BigWigData, 0, totalPoints)`
 
-- [ ] Pre-allocate in `GetCachedBedData()` (`track/bigdata/bigbed/cache.go:112`)
+- [x] Pre-allocate in `GetCachedBedData()` (`track/bigdata/bigbed/cache.go:112`)
   - Count total points across `rangeData` first
   - Use `make([]BigBedData, 0, totalPoints)`
 
-- [ ] Pre-allocate in `BrowserHandler()` (`api/handlers.go:102-104`)
+- [x] Pre-allocate in `BrowserHandler()` (`api/handlers.go:102-104`)
   - Use `make([]TrackResponse, 0, len(request.Tracks))`
 
 **Commit suggestion:** `perf: pre-allocate slice capacity in hot paths`

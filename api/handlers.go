@@ -99,7 +99,7 @@ func BrowserHandler(w http.ResponseWriter, r *http.Request) {
 		go getTrackData(track, request, results)
 	}
 
-	var responses []TrackResponse
+	responses := make([]TrackResponse, 0, len(request.Tracks))
 	for i := 0; i < len(request.Tracks); i++ {
 		responses = append(responses, <-results)
 	}

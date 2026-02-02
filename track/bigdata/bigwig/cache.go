@@ -140,7 +140,12 @@ func GetCachedWigData(url string, chrom string, start, end int, preRenderedWidth
 	BigWigDataCache.Add(cacheId, rangeData)
 
 	// Filter data to only include points within the requested range
-	var data []BigWigData
+	// Count total points for pre-allocation
+	totalPoints := 0
+	for _, r := range rangeData {
+		totalPoints += len(r.Data)
+	}
+	data := make([]BigWigData, 0, totalPoints)
 	for _, r := range rangeData {
 		// Only include data from ranges that overlap with the requested region
 		if r.End <= start || r.Start >= end {
