@@ -28,7 +28,7 @@ var (
 	DefaultIdleTimeout     = 120 * time.Second
 	DefaultMaxRequestBody  = int64(1 << 20) // 1 MB
 	DefaultShutdownTimeout = 30 * time.Second
-	DefaultCacheSize       = 25
+	DefaultCacheSize       = 250
 )
 
 // Load reads configuration from environment variables with defaults

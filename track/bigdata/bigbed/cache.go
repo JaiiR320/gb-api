@@ -59,13 +59,11 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 		slog.Debug("Cache miss", "fetchingEntireRange", true)
 	}
 
-	// stupid race condition temporary solution
-	var erra error
-
 	dchan := make(chan cache.RangeData[BigBedData], len(rangesToFetch))
-
 	var wg sync.WaitGroup
 	wg.Add(len(rangesToFetch))
+
+	errchan := make(chan error, 1)
 
 	bb, err := getCachedHeader(url)
 	if err != nil {
@@ -78,19 +76,29 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 			slog.Debug("Goroutine fetching", "start", r.Start, "end", r.End)
 			data, err := bigdata.ReadData(bb, chrom, int32(r.Start), int32(r.End), decodeBedData)
 			if err != nil {
-				erra = err
+				select {
+				case errchan <- err:
+				default:
+				}
+				return
 			}
 
-			rdata := cache.RangeData[BigBedData]{
+			dchan <- cache.RangeData[BigBedData]{
 				Start: r.Start,
 				End:   r.End,
 				Data:  data,
 			}
-			dchan <- rdata
 		}(r)
 	}
+
 	wg.Wait()
 	close(dchan)
+	close(errchan)
+
+	// Check for errors from goroutines
+	if err, ok := <-errchan; ok {
+		return nil, err
+	}
 
 	rangeData := cachedData
 	for dc := range dchan {
@@ -125,5 +133,5 @@ func GetCachedBedData(url string, chrom string, start, end int) ([]BigBedData, e
 	}
 	slog.Debug("Returning data points", "count", len(data), "start", start, "end", end)
 
-	return data, erra
+	return data, nil
 }
